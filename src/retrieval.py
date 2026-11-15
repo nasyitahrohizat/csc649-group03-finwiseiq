@@ -24,3 +24,17 @@ def load_dataset(path: Path = DATA_PATH) -> pd.DataFrame:
     df["answer"] = df["answer"].str.strip()
     df = df[(df["question"] != "") & (df["answer"] != "")]
     return df.reset_index(drop=True)
+    
+@lru_cache(maxsize=1)
+def get_model() -> SentenceTransformer:
+    """Load the embedding model once and reuse it."""
+    return SentenceTransformer(MODEL_NAME)
+
+
+@lru_cache(maxsize=1)
+def get_index():
+    """Embed every dataset question once. Returns (dataframe, embeddings)."""
+    df = load_dataset()
+    embeddings = get_model().encode(df["question"].tolist(),
+                                    normalize_embeddings=True)
+    return df, embeddings
