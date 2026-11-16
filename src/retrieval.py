@@ -38,3 +38,26 @@ def get_index():
     embeddings = get_model().encode(df["question"].tolist(),
                                     normalize_embeddings=True)
     return df, embeddings
+
+
+def retrieve_context(question: str) -> list[dict]:
+    """Return up to TOP_K matches (best first) scoring >= THRESHOLD.
+    Returns [] when the question is empty or nothing is relevant."""
+    if not question or not question.strip():
+        return []
+    df, embeddings = get_index()
+    q = get_model().encode([question.strip()], normalize_embeddings=True)[0]
+    scores = embeddings @ q  # cosine similarity (vectors are normalised)
+    results = []
+    for i in scores.argsort()[::-1][:TOP_K]:
+        score = float(scores[i])
+        if score < THRESHOLD:
+            break
+        row = df.iloc[i]
+        results.append({
+            "id": row["id"], "category": row["category"],
+            "question": row["question"], "answer": row["answer"],
+            "source": row["source"], "source_section": row["source_section"],
+            "score": round(score, 4),
+        })
+    return results
