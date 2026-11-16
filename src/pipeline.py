@@ -25,6 +25,7 @@ def format_context(results: list[dict]) -> str:
     """Turn retrieved matches into the numbered text block sent to OpenAI."""
     blocks = []
     for n, r in enumerate(results, start=1):
+        # this is the code that formats the retrieved results into a numbered list for OpenAI
         blocks.append(
             f"[{n}] Q: {r['question']}\n"
             f"    A: {r['answer']}\n"
