@@ -5,10 +5,10 @@ from pathlib import Path
 import pandas as pd
 from sentence_transformers import SentenceTransformer
 
-DATA_PATH = Path(__file__).resolve().parent.parent / "data" / "sample.csv"
+DATA_PATH = Path(__file__).resolve().parent.parent / "data" / "finwiseiq_dataset.csv"
 MODEL_NAME = "all-MiniLM-L6-v2"
 TOP_K = 3
-THRESHOLD = 0.5  # placeholder - calibrate with real data (KAN-18)
+THRESHOLD = 0.45  # calibrated on tests/evaluation_questions.csv (16 Nov)
 COLUMNS = ["id", "category", "question", "answer",
            "source", "source_section", "last_reviewed"]
 
