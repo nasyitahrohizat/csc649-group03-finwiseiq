@@ -424,7 +424,8 @@ csc649-group03-finwiseiq/
 │   ├── frontend_test_results.md   # Gradio interface tests (KAN-33)
 │   ├── pipeline_test_results.md   # End-to-end pipeline test with the real API (KAN-34)
 │   ├── end_to_end_answers.md      # Raw answers for all 20 test questions (KAN-40)
-│   └── end_to_end_evaluation.md   # Five-dimension evaluation table (KAN-40)
+│   ├── end_to_end_evaluation.md   # Five-dimension evaluation table (KAN-40)
+│   └── security_review.md         # Security and repository review (KAN-42)
 ├── src/
 │   ├── __init__.py
 │   ├── retrieval.py               # Dataset loading, embeddings, top-3 cosine search, threshold
