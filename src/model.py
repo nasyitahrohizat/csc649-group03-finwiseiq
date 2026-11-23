@@ -86,7 +86,6 @@ def generate_answer(question: str, context: str) -> str:
                 {"role": "system", "content": SYSTEM_PROMPT},
                 {"role": "user", "content": user_prompt},
             ],
-            temperature=0.2,
         )
     except GenerationError:
         raise

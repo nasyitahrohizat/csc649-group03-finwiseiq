@@ -192,3 +192,75 @@ def test_generate_answer_empty_responses_raise_friendly_error(
     mock_client.chat.completions.create.return_value = _make_mock_response("   ")
     with pytest.raises(GenerationError, match="empty response"):
         generate_answer(SAMPLE_QUESTION, SAMPLE_CONTEXT)
+
+
+SAMPLE_CSV_CONTEXT = (
+    '[1] ID: IFF-001 | Category: Islamic Finance Fundamentals | '
+    'Q: What does Shariah-compliant mean in finance? | '
+    'A: A Shariah-compliant product follows Islamic law, avoiding riba, maysir, and gharar. | '
+    'Source: BNM Policy Document: Shariah Governance (BNM/RH/PD 028-100, 20 Sep 2019), PD para 1.3\n'
+    '[2] ID: IFF-002 | Category: Islamic Finance Fundamentals | '
+    'Q: What is riba and why do Islamic banks avoid it? | '
+    'A: Riba refers to interest. Islamic banks use trade or partnership contracts instead. | '
+    'Source: BNM website: Islamic Banking & Takaful, Overview'
+)
+
+
+@patch("src.model.get_model_name", return_value="gpt-4o-mini")
+@patch("src.model.get_openai_client")
+def test_generate_answer_relevant_csv_context(mock_get_client, _mock_model):
+    """Relevant question with CSV-formatted context returns a grounded answer."""
+    mock_client = MagicMock()
+    mock_client.chat.completions.create.return_value = _make_mock_response(
+        "A Shariah-compliant financial product follows Islamic law by avoiding riba, "
+        "maysir, and gharar (Source: BNM Policy Document: Shariah Governance, PD para 1.3)."
+    )
+    mock_get_client.return_value = mock_client
+
+    answer = generate_answer(
+        "What does Shariah-compliant mean in finance?",
+        SAMPLE_CSV_CONTEXT,
+    )
+
+    assert "Shariah-compliant" in answer
+    assert "riba" in answer
+    sent_messages = mock_client.chat.completions.create.call_args.kwargs["messages"]
+    assert "IFF-001" in sent_messages[1]["content"]
+
+
+@patch("src.model.get_model_name", return_value="gpt-4o-mini")
+@patch("src.model.get_openai_client")
+def test_generate_answer_insufficient_context(mock_get_client, _mock_model):
+    """Question not covered by retrieved CSV context produces a safe fallback answer."""
+    mock_client = MagicMock()
+    mock_client.chat.completions.create.return_value = _make_mock_response(
+        "The provided FinWiseIQ knowledge base context does not contain enough "
+        "information on Sukuk structuring requirements."
+    )
+    mock_get_client.return_value = mock_client
+
+    answer = generate_answer(
+        "What are the exact capital adequacy ratios for Sukuk issuance?",
+        SAMPLE_CSV_CONTEXT,
+    )
+
+    assert "does not contain enough information" in answer.lower()
+
+
+@patch("src.model.get_model_name", return_value="gpt-4o-mini")
+@patch("src.model.get_openai_client")
+def test_generate_answer_out_of_scope_question(mock_get_client, _mock_model):
+    """Out-of-scope question is politely declined under FinWiseIQ system boundaries."""
+    mock_client = MagicMock()
+    mock_client.chat.completions.create.return_value = _make_mock_response(
+        "I can only answer educational questions related to Islamic finance and "
+        "Malaysian financial compliance based on the FinWiseIQ knowledge base."
+    )
+    mock_get_client.return_value = mock_client
+
+    answer = generate_answer(
+        "Which stock will go up tomorrow on Bursa Malaysia?",
+        SAMPLE_CSV_CONTEXT,
+    )
+
+    assert "islamic finance" in answer.lower()
