@@ -7,7 +7,7 @@
 CSC649 – Special Topics in Computer Science · Group 03
 
 > [!IMPORTANT]
-> **Project status: implemented; final testing in progress.** The dataset, retrieval, OpenAI generation, end-to-end pipeline and Gradio interface are built and covered by automated tests. Full end-to-end evaluation of the test set through the running app is the remaining step before submission (see [Section 12](#12-evaluation-and-testing)).
+> **Project status: implemented and evaluated.** The dataset, retrieval, OpenAI generation, end-to-end pipeline and Gradio interface are built, covered by automated tests, and evaluated end to end on 20 test questions (see [Section 12](#12-evaluation-and-testing)).
 
 > [!WARNING]
 > FinWiseIQ is an **educational information assistant**. It is not a substitute for professional legal, financial, regulatory or Shariah advice. It does not certify compliance, issue Shariah rulings, or perform customer identity verification.
@@ -111,7 +111,7 @@ FinWiseIQ will **not**:
 | Retrieval of the top-k most relevant Q&A pairs (k = 3)                                            | Custom knowledge retrieval (RAG)            | `src/retrieval.py`                                    | Implemented                                              |
 | Injection of retrieved Q&A pairs into the LLM prompt                                              | Context injection                           | `src/pipeline.py`, `src/model.py`                     | Implemented                                              |
 | Gradio web interface                                                                              | Frontend (Gradio/Flask/Tkinter)             | `app/interface.py`                                    | Implemented                                              |
-| Evaluation table of test questions and expected answers                                           | Evaluation table                            | `tests/evaluation_questions.csv`, `docs/`             | Implemented (full end-to-end run in progress)            |
+| Evaluation table of test questions and expected answers                                           | Evaluation table                            | `tests/evaluation_questions.csv`, `docs/`             | Implemented                                              |
 | Out-of-scope handling: similarity threshold (0.45) plus refusal instructions in the system prompt | Supports the _Refusal_ evaluation dimension | `src/retrieval.py`, `src/prompt.py`                   | Implemented                                              |
 | Source-aware responses: each answer lists the source documents and sections used                  | Optional                                    | `src/pipeline.py`                                     | Implemented                                              |
 | Friendly error messages for empty input, API failures and timeouts (no raw errors or keys shown)  | Robustness                                  | `src/model.py`, `src/pipeline.py`, `app/interface.py` | Implemented                                              |
@@ -422,7 +422,9 @@ csc649-group03-finwiseiq/
 │   ├── retrieval_evaluation.md    # Retrieval accuracy and threshold calibration (KAN-36)
 │   ├── generation_test_results.md # OpenAI generation tests (KAN-24)
 │   ├── frontend_test_results.md   # Gradio interface tests (KAN-33)
-│   └── pipeline_test_results.md   # End-to-end pipeline test with the real API (KAN-34)
+│   ├── pipeline_test_results.md   # End-to-end pipeline test with the real API (KAN-34)
+│   ├── end_to_end_answers.md      # Raw answers for all 20 test questions (KAN-40)
+│   └── end_to_end_evaluation.md   # Five-dimension evaluation table (KAN-40)
 ├── src/
 │   ├── __init__.py
 │   ├── retrieval.py               # Dataset loading, embeddings, top-3 cosine search, threshold
@@ -432,6 +434,7 @@ csc649-group03-finwiseiq/
 ├── tests/
 │   ├── evaluation_questions.csv   # Test set T01-T20 (15 in-scope, 5 out-of-scope)
 │   ├── evaluate_retrieval.py      # Retrieval evaluation script
+│   ├── evaluate_end_to_end.py     # End-to-end evaluation script (real API)
 │   ├── test_retrieval.py          # Retrieval unit tests
 │   ├── test_model.py              # Generation unit tests (OpenAI mocked)
 │   ├── test_pipeline.py           # Pipeline unit tests (OpenAI mocked)
@@ -517,7 +520,17 @@ The two out-of-scope questions that pass the threshold (T19 Shariah certificatio
 
 **Gradio interface** (24 November 2026, KAN-35): through the running app, the Murabahah and customer due diligence questions returned answers with sources, off-topic questions returned the fallback, and empty input returned "Please type a question."
 
-**Still to do:** run all 20 test questions through the running app and record the five-dimension results (KAN-40).
+**End-to-end evaluation** (24 November 2026, KAN-40, [docs/end_to_end_evaluation.md](docs/end_to_end_evaluation.md), reproduce with `python -m tests.evaluate_end_to_end`): all 20 test questions were run through the full pipeline with the real OpenAI API and judged on the five dimensions.
+
+| Dimension | Result |
+|---|---|
+| Retrieval: in-scope, correct row in top 3 | 15 / 15 (12 at rank 1) |
+| Correctness (in-scope) | 13 / 15 fully correct, 2 partial, 0 wrong |
+| Faithfulness (17 generated answers) | 17 / 17 |
+| Refusal (out-of-scope) | 5 / 5 (3 by the threshold, 2 by the system prompt) |
+| Usefulness | 20 / 20 |
+
+The two partial answers were T13, where the expected Federal Court detail is not in the dataset row (a dataset gap, not invented by the model), and T14, where the model left out Malaysia's FATF membership because the question did not ask about it.
 
 ---
 
@@ -646,4 +659,4 @@ BNM policy documents are copyrighted by BNM. The dataset only paraphrases short 
 
 ---
 
-_Last updated 24 November 2026, after integrating the Gradio interface with the RAG pipeline. Update Section 12 once the full end-to-end evaluation (KAN-40) is complete._
+_Last updated 24 November 2026, after the end-to-end evaluation (KAN-40). Re-run both evaluation scripts and update Section 12 if the dataset changes._
