@@ -2,12 +2,12 @@
 
 **FinWiseIQ: An AI-Powered RAG-Based Islamic Finance and Malaysian Financial Compliance Assistant**
 
-> *Understand Finance. Navigate Compliance.*
+> _Understand Finance. Navigate Compliance._
 
 CSC649 – Special Topics in Computer Science · Group 03
 
 > [!IMPORTANT]
-> **Project status: planning stage.** This repository contains planning files only (`README.md`, `.gitignore`, `.env.example`, `requirements.txt`). There is no source code, dataset or test yet. This README describes the **intended** design so the team can build against a shared plan. Every component is marked with its current status, and the README will be updated as work is merged.
+> **Project status: implemented and evaluated.** The dataset, retrieval, OpenAI generation, end-to-end pipeline and Gradio interface are built, covered by automated tests, and evaluated end to end on 20 test questions (see [Section 12](#12-evaluation-and-testing)).
 
 > [!WARNING]
 > FinWiseIQ is an **educational information assistant**. It is not a substitute for professional legal, financial, regulatory or Shariah advice. It does not certify compliance, issue Shariah rulings, or perform customer identity verification.
@@ -40,58 +40,58 @@ CSC649 – Special Topics in Computer Science · Group 03
 
 ### The problem
 
-Islamic finance and Malaysian financial regulation are both well documented, but the documentation is long, technical and spread across several institutions. A student or new employee who wants to know what *murabahah* is, how it differs from *ijarah*, or what Customer Due Diligence involves usually has to read through policy documents that run to more than a hundred pages.
+Islamic finance and Malaysian financial regulation are both well documented, but the documentation is long, technical and spread across several institutions. A student or new employee who wants to know what _murabahah_ is, how it differs from _ijarah_, or what Customer Due Diligence involves usually has to read through policy documents that run to more than a hundred pages.
 
 General-purpose chatbots can answer these questions quickly, but they have two weaknesses in this domain:
 
 - They may mix up Malaysian requirements with those of other jurisdictions.
 - They may give confident answers that no source supports. In a regulatory or Shariah context, that is a serious problem.
 
-### The proposed solution
+### The solution
 
-FinWiseIQ is a domain-specific chatbot that uses **Retrieval-Augmented Generation (RAG)**. Before it answers, it retrieves relevant entries from a curated question–answer dataset. The dataset will be written from authoritative documents, such as those issued by Bank Negara Malaysia (BNM), the Financial Action Task Force (FATF) and the Islamic Financial Services Board (IFSB) (see [Section 17](#17-references)). The retrieved entries are then given to a large language model (LLM) as context, and the system prompt tells the model to answer only from that context and to say when it does not know.
+FinWiseIQ is a domain-specific chatbot that uses **Retrieval-Augmented Generation (RAG)**. Before it answers, it retrieves relevant entries from a curated question–answer dataset written from authoritative documents issued by Bank Negara Malaysia (BNM), the Financial Action Task Force (FATF), the Islamic Financial Services Board (IFSB), the Securities Commission Malaysia and Malaysian legislation (see [Section 17](#17-references)). The retrieved entries are given to a large language model (LLM) as context, and the system prompt tells the model to answer only from that context and to say when it does not know. Every answer is shown with the sources it was based on.
 
 ### Intended users and use cases
 
-| User | Example use case |
-|---|---|
-| Undergraduate finance, banking or computing students | Revising Islamic finance concepts and contract types |
+| User                                                       | Example use case                                                                            |
+| ---------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| Undergraduate finance, banking or computing students       | Revising Islamic finance concepts and contract types                                        |
 | New staff in banks, takaful operators or fintech companies | Getting an overview of AML/CFT and CDD obligations before reading the full policy documents |
-| General public | Understanding basic terms such as *riba*, *gharar* or "Shariah-compliant" |
-| Lecturers and assessors | Seeing how a small, grounded RAG system behaves compared with an unguided LLM |
+| General public                                             | Understanding basic terms such as _riba_, _gharar_ or "Shariah-compliant"                   |
+| Lecturers and assessors                                    | Seeing how a small, grounded RAG system behaves compared with an unguided LLM               |
 
 ---
 
 ## 2. Project Objectives
 
-1. **Explain Islamic finance concepts.** Give clear explanations of core principles such as the prohibition of *riba* (interest), *gharar* (excessive uncertainty) and *maysir* (gambling).
-2. **Explain Islamic financing contracts.** Describe common contracts (for example *murabahah*, *ijarah*, *musharakah*, *mudarabah*, *tawarruq*) and how they are used.
+1. **Explain Islamic finance concepts.** Give clear explanations of core principles such as the prohibition of _riba_ (interest), _gharar_ (excessive uncertainty) and _maysir_ (gambling).
+2. **Explain Islamic financing contracts.** Describe common contracts (for example _murabahah_, _ijarah_, _musharakah_, _mudarabah_, _tawarruq_) and how they are used.
 3. **Provide educational information on AML/CFT.** Explain the purpose of anti-money laundering and counter financing of terrorism controls and the general obligations they place on reporting institutions.
 4. **Provide educational information on KYC/CDD.** Explain what Know Your Customer and Customer Due Diligence involve, including concepts such as politically exposed persons (PEPs) and enhanced due diligence.
 5. **Explain the Malaysian regulatory framework.** Help users understand the role of bodies such as BNM, and key ideas such as Shariah governance.
 6. **Retrieve before generating.** Ground every answer in retrieved entries from the project dataset rather than in the LLM's general knowledge.
-7. **Reduce unsupported answers.** Use a system prompt and refusal behaviour so the chatbot says it does not know when the retrieved context does not support an answer.
+7. **Reduce unsupported answers.** Use a similarity threshold, a system prompt and refusal behaviour so the chatbot says it does not know when the retrieved context does not support an answer.
 
 ---
 
 ## 3. Project Scope
 
-The knowledge domain is organised into five categories. These names are intended to be used as the values of the `category` column in the dataset (see [Section 8](#8-dataset-and-knowledge-sources)).
+The knowledge domain is organised into five categories. These names are the values of the `category` column in the dataset (see [Section 8](#8-dataset-and-knowledge-sources)).
 
-| # | Category | Included topics (indicative) |
-|---|---|---|
-| 1 | **Islamic Finance Fundamentals** | *Riba*, *gharar*, *maysir*; the meaning of "Shariah-compliant"; the role of Shariah committees |
-| 2 | **Islamic Financing Contracts** | *Murabahah*, *ijarah*, *musharakah*, *mudarabah*, *tawarruq*, *wakalah*; the differences between them |
-| 3 | **AML/CFT** | Money laundering stages; terrorism financing; suspicious transaction reports; cash threshold reports; targeted financial sanctions; the risk-based approach |
-| 4 | **KYC/CDD** | Customer identification and verification; beneficial ownership; PEPs; simplified and enhanced due diligence; record keeping |
-| 5 | **Malaysian Financial Regulatory Framework** | Roles of BNM and the Securities Commission Malaysia; Shariah governance requirements; applicability of BNM policy documents |
+| #   | Category                                     | Included topics (indicative)                                                                                                                                |
+| --- | -------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | **Islamic Finance Fundamentals**             | _Riba_, _gharar_, _maysir_; the meaning of "Shariah-compliant"; the role of Shariah committees                                                              |
+| 2   | **Islamic Financing Contracts**              | _Murabahah_, _ijarah_, _musharakah_, _mudarabah_, _tawarruq_; the differences between them                                                                  |
+| 3   | **AML/CFT**                                  | Money laundering stages; terrorism financing; suspicious transaction reports; cash threshold reports; targeted financial sanctions; the risk-based approach |
+| 4   | **KYC/CDD**                                  | Customer identification and verification; beneficial ownership; PEPs; simplified and enhanced due diligence; record keeping                                 |
+| 5   | **Malaysian Financial Regulatory Framework** | Roles of BNM and the Securities Commission Malaysia; Shariah governance requirements; applicability of BNM policy documents                                 |
 
 ### Outside the scope
 
 FinWiseIQ will **not**:
 
 - give personalised investment, financing, tax or legal advice;
-- issue *fatwa* or rule on whether a specific product is Shariah-compliant;
+- issue _fatwa_ or rule on whether a specific product is Shariah-compliant;
 - certify that an organisation complies with AML/CFT or any other regulation;
 - verify a real person's identity, screen names against sanctions lists or process personal data;
 - give live information such as current rates, prices or recent regulatory announcements;
@@ -101,52 +101,49 @@ FinWiseIQ will **not**:
 
 ## 4. Key Features
 
-### Implemented
-
-*None yet.* At the time of writing, the repository contains only configuration and documentation files.
-
-### Planned
-
-| Feature | Lecturer requirement | Status |
-|---|---|---|
-| Domain-specific chatbot for Islamic finance and Malaysian financial compliance | Unique domain per group | Planned |
-| Custom CSV knowledge dataset with at least 30 Q&A pairs | Custom CSV dataset (≥ 30 pairs) | Planned |
-| OpenAI API integration (official `openai` Python SDK, called only from the backend) | LLM/API integration | Planned |
-| Custom system prompt defining scope, tone and refusal rules | Custom system prompt | Planned |
-| Semantic search with Sentence Transformers (`all-MiniLM-L6-v2`) | Custom knowledge retrieval (RAG) | Planned |
-| Retrieval of the top-k most relevant Q&A pairs (k = 3) | Custom knowledge retrieval (RAG) | Planned |
-| Injection of retrieved Q&A pairs into the LLM prompt | Context injection | Planned |
-| Gradio web interface | Frontend (Gradio/Flask/Tkinter) | Planned |
-| Evaluation table of test questions and expected answers | Evaluation table | Planned |
-| Out-of-scope handling: similarity threshold plus refusal instructions in the system prompt | Supports the *Refusal* evaluation dimension | Planned |
-| Source-aware responses (showing which dataset entries were used) | Optional | Stretch goal |
-| Conversation history within a session | Optional | Stretch goal |
+| Feature                                                                                           | Lecturer requirement                        | Where                                                 | Status                                                   |
+| ------------------------------------------------------------------------------------------------- | ------------------------------------------- | ----------------------------------------------------- | -------------------------------------------------------- |
+| Domain-specific chatbot for Islamic finance and Malaysian financial compliance                    | Unique domain per group                     | Whole project                                         | Implemented                                              |
+| Custom CSV knowledge dataset: **50** Q&A pairs, 10 per category, each with source and section     | Custom CSV dataset (≥ 30 pairs)             | `data/finwiseiq_dataset.csv`                          | Implemented                                              |
+| OpenAI API integration (official `openai` Python SDK, called only from the backend)               | LLM/API integration                         | `src/model.py`                                        | Implemented                                              |
+| Custom system prompt defining scope, tone and refusal rules                                       | Custom system prompt                        | `src/prompt.py`                                       | Implemented                                              |
+| Semantic search with Sentence Transformers (`all-MiniLM-L6-v2`) and cosine similarity             | Custom knowledge retrieval (RAG)            | `src/retrieval.py`                                    | Implemented                                              |
+| Retrieval of the top-k most relevant Q&A pairs (k = 3)                                            | Custom knowledge retrieval (RAG)            | `src/retrieval.py`                                    | Implemented                                              |
+| Injection of retrieved Q&A pairs into the LLM prompt                                              | Context injection                           | `src/pipeline.py`, `src/model.py`                     | Implemented                                              |
+| Gradio web interface                                                                              | Frontend (Gradio/Flask/Tkinter)             | `app/interface.py`                                    | Implemented                                              |
+| Evaluation table of test questions and expected answers                                           | Evaluation table                            | `tests/evaluation_questions.csv`, `docs/`             | Implemented                                              |
+| Out-of-scope handling: similarity threshold (0.45) plus refusal instructions in the system prompt | Supports the _Refusal_ evaluation dimension | `src/retrieval.py`, `src/prompt.py`                   | Implemented                                              |
+| Source-aware responses: each answer lists the source documents and sections used                  | Optional                                    | `src/pipeline.py`                                     | Implemented                                              |
+| Friendly error messages for empty input, API failures and timeouts (no raw errors or keys shown)  | Robustness                                  | `src/model.py`, `src/pipeline.py`, `app/interface.py` | Implemented                                              |
+| Automated tests run on every pull request (GitHub Actions)                                        | Quality                                     | `.github/workflows/tests.yml`                         | Implemented                                              |
+| Conversation memory (using earlier turns as context)                                              | Optional                                    | –                                                     | Not implemented; each question is answered independently |
 
 ---
 
 ## 5. Technology Stack
 
-The planned dependencies are listed in [requirements.txt](requirements.txt). Nothing has been installed or tested yet. The stack follows the lecturer's CSV-based RAG example, with OpenAI as the LLM provider.
+Dependencies are listed in [requirements.txt](requirements.txt). The stack follows the lecturer's CSV-based RAG example, with OpenAI as the LLM provider.
 
-| Technology | Purpose | Where it will be used | Status |
-|---|---|---|---|
-| Python 3.11+ | Main programming language (pandas 3.x requires Python 3.11 or newer) | Whole project | Planned |
-| pandas | Load and handle the Q&A CSV dataset | Data loading module | Planned |
-| sentence-transformers (`all-MiniLM-L6-v2`) | Convert questions into embeddings; cosine similarity for semantic search | Retrieval module | Planned |
-| PyTorch | Backend required by sentence-transformers | Installed automatically as a dependency | Planned |
-| OpenAI API — official [`openai`](https://pypi.org/project/openai/) Python SDK | Generate answers from the retrieved context | Generation module (backend only) | Planned |
-| python-dotenv | Load `OPENAI_API_KEY` and `OPENAI_MODEL` from a local `.env` file | Configuration (backend only) | Planned |
-| Gradio | Web-based chat interface | Application entry point | Planned |
-| pytest | Automated tests | `tests/` | Planned |
-| Git and GitHub | Version control, Issues, Project board and pull requests | Collaboration | In use (repository created; no commits yet) |
+| Technology                                                                                       | Purpose                                                                       | Where it is used                        |
+| ------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------- | --------------------------------------- |
+| Python 3.11+                                                                                     | Main programming language (pandas 3.x requires Python 3.11 or newer)          | Whole project                           |
+| pandas                                                                                           | Load the Q&A CSV dataset                                                      | `src/retrieval.py`                      |
+| sentence-transformers (`all-MiniLM-L6-v2`)                                                       | Embed questions; cosine similarity for semantic search                        | `src/retrieval.py`                      |
+| PyTorch                                                                                          | Backend required by sentence-transformers                                     | Installed automatically as a dependency |
+| OpenAI API — official [`openai`](https://pypi.org/project/openai/) Python SDK (Chat Completions) | Generate answers from the retrieved context                                   | `src/model.py` (backend only)           |
+| python-dotenv                                                                                    | Load `OPENAI_API_KEY` and `OPENAI_MODEL` from a local `.env` file             | `src/model.py`                          |
+| Gradio                                                                                           | Web-based chat interface                                                      | `app/interface.py`                      |
+| pytest                                                                                           | Automated tests                                                               | `tests/`                                |
+| GitHub Actions                                                                                   | Run the test suite on every pull request to `main`                            | `.github/workflows/tests.yml`           |
+| Git, GitHub and Jira                                                                             | Version control, pull requests and code review (GitHub); task tracking (Jira) | Collaboration                           |
 
 ### OpenAI model
 
-| Setting | Value |
-|---|---|
-| Environment variable | `OPENAI_MODEL` |
-| Default value in `.env.example` | `gpt-6-luna` |
-| Verified | 12 November 2026, on OpenAI's official [model list](https://developers.openai.com/api/docs/models) and [model page](https://developers.openai.com/api/docs/models/gpt-6-luna). Listed as an API model ID, described as OpenAI's most efficient model for focused, high-volume tasks, with no deprecation notice, and supporting the Responses and Chat Completions endpoints. |
+| Setting                         | Value                                                                                                                                                                                                                                                                                                                                                |
+| ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Environment variable            | `OPENAI_MODEL`                                                                                                                                                                                                                                                                                                                                       |
+| Default value in `.env.example` | `gpt-6-luna`                                                                                                                                                                                                                                                                                                                                         |
+| Verified                        | 12 November 2026, on OpenAI's official [model list](https://developers.openai.com/api/docs/models) and [model page](https://developers.openai.com/api/docs/models/gpt-6-luna). Listed as an API model ID, with no deprecation notice, and supporting the Responses and Chat Completions endpoints. Live API tests passed on 17 and 24 November 2026. |
 
 The model ID is read from `OPENAI_MODEL` and is not hardcoded, so it can be changed without editing code. Model IDs used by the API are not the same as ChatGPT product names. Before changing the value, or before submission, check the official model list again, because models can be deprecated.
 
@@ -154,208 +151,170 @@ The model ID is read from `OPENAI_MODEL` and is not hardcoded, so it can be chan
 
 ## 6. System Architecture
 
-> **All components in this diagram are planned.** None have been implemented yet.
-
 ```mermaid
 flowchart TD
-    U["Step 1: User"] -->|types a question| UI["Step 2: Gradio frontend"]
-    UI --> QP["Step 3: Query processing<br/>(trim and validate input)"]
+    U["Step 1: User"] -->|types a question| UI["Step 2: Gradio frontend<br/>app/interface.py"]
+    UI --> QP["Step 3: Query processing<br/>(reject empty input)"]
     QP --> EM["Step 4: Embedding model<br/>all-MiniLM-L6-v2"]
 
-    DS[("Q&A dataset<br/>CSV file")] -->|questions embedded once at start-up| EMB[("Dataset question<br/>embeddings")]
-    EM -->|query embedding| SR["Step 5: Semantic retrieval<br/>cosine similarity, top-k = 3"]
+    DS[("Q&A dataset<br/>data/finwiseiq_dataset.csv")] -->|questions embedded once, then cached| EMB[("Dataset question<br/>embeddings")]
+    EM -->|query embedding| SR["Step 5: Semantic retrieval<br/>cosine similarity, top-k = 3<br/>src/retrieval.py"]
     EMB --> SR
 
-    SR --> TH{"Step 5a: Relevance check<br/>best score at least threshold?"}
-    TH -->|No| REF["Refusal or clarification message<br/>LLM is not called"]
+    SR --> TH{"Step 5a: Relevance check<br/>score at least 0.45?"}
+    TH -->|No match| REF["Fallback message<br/>LLM is not called"]
     REF --> UI
-    TH -->|Yes| CTX["Step 6: Retrieved context<br/>top-k Q&A pairs"]
-    SP["Step 7: System prompt<br/>scope, tone and refusal rules"] --> PB["Prompt builder"]
+    TH -->|Yes| CTX["Step 6: Retrieved context<br/>numbered Q&A pairs with sources<br/>src/pipeline.py"]
+    SP["Step 7: System prompt<br/>src/prompt.py"] --> PB["Prompt builder<br/>src/model.py"]
     CTX --> PB
     QP -->|original question| PB
 
     PB --> LLM["Step 8: LLM via OpenAI API<br/>(backend only, model from OPENAI_MODEL)"]
-    LLM --> ANS["Step 9: Generated answer"]
+    LLM --> ANS["Step 9: Answer + Sources list"]
     ANS --> UI
     UI -->|Step 10: response shown| U
 ```
 
 ### Component responsibilities
 
-| # | Component | Responsibility |
-|---|---|---|
-| 1 | User | Asks a question in natural language. |
-| 2 | Frontend (Gradio) | Accepts input and displays the response. |
-| 3 | Query processing | Cleans the input (e.g. trims whitespace, rejects empty input). |
-| 4 | Embedding model | Converts the user's question into a vector using `all-MiniLM-L6-v2`. |
-| 5 | Semantic retrieval | Compares the query vector with the pre-computed dataset question vectors and ranks them by cosine similarity. |
-| 5a | Relevance check | If even the best similarity score is below a calibrated threshold, returns a refusal or clarification message without calling the LLM (see [Section 7](#7-rag-pipeline)). |
-| 6 | Retrieved context | The top-k Q&A pairs, formatted as text. |
-| 7 | System prompt | Fixed instructions telling the model its role, its domain, to answer only from the context, and to refuse otherwise. |
-| 8 | LLM/API | The backend calls the OpenAI API (model ID from `OPENAI_MODEL`) with the system prompt, context and question. The Gradio frontend never calls OpenAI directly and never sees the API key. |
-| 9 | Generated answer | The model's text output. |
-| 10 | Response display | The answer is shown in the chat interface. |
+| #   | Component          | File                                  | Responsibility                                                                                                                                                                                                                                                |
+| --- | ------------------ | ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | User               | –                                     | Asks a question in natural language.                                                                                                                                                                                                                          |
+| 2   | Frontend (Gradio)  | `app/interface.py`                    | Accepts input and displays the response. `respond()` calls `get_backend_answer()`, which calls `process_question()`. Catches any unexpected error and shows a friendly message.                                                                               |
+| 3   | Query processing   | `app/interface.py`, `src/pipeline.py` | Trims whitespace and rejects empty input ("Please type a question.").                                                                                                                                                                                         |
+| 4   | Embedding model    | `src/retrieval.py`                    | Converts the user's question into a normalised vector using `all-MiniLM-L6-v2`.                                                                                                                                                                               |
+| 5   | Semantic retrieval | `src/retrieval.py`                    | `retrieve_context()` compares the query vector with the cached dataset question vectors and ranks them by cosine similarity.                                                                                                                                  |
+| 5a  | Relevance check    | `src/retrieval.py`, `src/pipeline.py` | Only matches scoring ≥ 0.45 are kept. If none are left, `process_question()` returns a fallback message without calling OpenAI.                                                                                                                               |
+| 6   | Retrieved context  | `src/pipeline.py`                     | `format_context()` turns the matches into numbered text blocks with question, answer and source.                                                                                                                                                              |
+| 7   | System prompt      | `src/prompt.py`                       | `SYSTEM_PROMPT`: role, five-category domain, answer only from context, refusal rules.                                                                                                                                                                         |
+| 8   | LLM/API            | `src/model.py`                        | `generate_answer()` sends the system prompt, context and question to the OpenAI Chat Completions API. Errors become a `GenerationError` with a safe message; logged errors have the API key redacted. The frontend never calls OpenAI and never sees the key. |
+| 9   | Generated answer   | `src/pipeline.py`                     | The answer plus a de-duplicated "Sources:" list (document and section).                                                                                                                                                                                       |
+| 10  | Response display   | `app/interface.py`                    | The answer is shown in the chat interface.                                                                                                                                                                                                                    |
 
 ---
 
 ## 7. RAG Pipeline
 
-> **Status: planned.** This section describes the intended baseline, based on the lecturer's CSV-based RAG example. It will be updated once the code exists.
-
 ### Steps
 
-1. **Load the dataset.** Read the Q&A CSV file into a pandas DataFrame.
-2. **Load the embedding model.** Load the Sentence Transformer model `all-MiniLM-L6-v2`.
-3. **Embed the dataset questions once.** Encode every question in the dataset at start-up and keep the vectors in memory, so they are not recomputed for each query.
+1. **Load the dataset.** Read `data/finwiseiq_dataset.csv` into a pandas DataFrame (`load_dataset()`).
+2. **Load the embedding model.** Load `all-MiniLM-L6-v2` once and cache it (`get_model()`).
+3. **Embed the dataset questions once.** Encode every dataset question (normalised) and cache the vectors in memory (`get_index()`), so they are not recomputed for each query.
 4. **Embed the user's question.** Encode the incoming question with the same model.
-5. **Run a semantic similarity search.** Compute cosine similarity between the query vector and every dataset question vector.
-6. **Retrieve the top-k pairs.** Select the k most similar Q&A pairs (initially **k = 3**).
-7. **Check relevance.** If the highest similarity score is below a threshold, stop and return a refusal or clarification message instead of calling the LLM (see [Relevance threshold and refusal](#relevance-threshold-and-refusal-planned)).
-8. **Inject the context.** Insert the retrieved questions and answers into the prompt sent to the LLM, together with the system prompt and the user's question.
-9. **Generate a grounded response.** The LLM writes an answer using the retrieved context.
+5. **Run a semantic similarity search.** Because the vectors are normalised, the dot product equals cosine similarity.
+6. **Retrieve the top-k pairs.** Select the 3 most similar Q&A pairs (`TOP_K = 3`).
+7. **Check relevance.** Drop matches below `THRESHOLD = 0.45`. If nothing is left, return the fallback message and do not call the LLM.
+8. **Inject the context.** Format the matches as numbered Q&A blocks with their sources, and send them with the system prompt and the user's question to OpenAI.
+9. **Generate a grounded response.** The LLM writes an answer using the retrieved context. The pipeline appends the list of sources used.
 
-Steps 1–6, 8 and 9 follow the lecturer's baseline example. Step 7 is the team's planned addition.
+Steps 1–6, 8 and 9 follow the lecturer's baseline example. Step 7 and the source list are the team's additions.
 
-### Relevance threshold and refusal (planned)
+### Function contract
 
-Top-k retrieval **always** returns k results, even when none of them is related to the question. If a user asks "What is the weather in Kuala Lumpur?", the retriever still returns the three least-unrelated Q&A pairs. Retrieval alone therefore cannot tell the system that it has no relevant knowledge.
+| Function                             | File               | Input                            | Output                                                                                                                                                      |
+| ------------------------------------ | ------------------ | -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `retrieve_context(question)`         | `src/retrieval.py` | question text                    | list of up to 3 dicts (`id`, `category`, `question`, `answer`, `source`, `source_section`, `score`), best first; empty list if nothing passes the threshold |
+| `generate_answer(question, context)` | `src/model.py`     | question text, formatted context | answer text; raises `GenerationError` (safe message) on API failure, `ValueError` on empty input                                                            |
+| `process_question(question)`         | `src/pipeline.py`  | question text                    | always returns text (answer with sources, fallback, or error message); never raises                                                                         |
 
-To handle this, the team plans a similarity threshold:
+### Relevance threshold and refusal
 
-| Best similarity score | Planned behaviour |
-|---|---|
-| At or above the threshold | Continue: inject the top-k pairs and call the LLM. |
-| Below the threshold | Do not call the LLM. Return a fixed message saying the question is outside FinWiseIQ's knowledge, or ask the user to rephrase or be more specific. |
+Top-k retrieval **always** returns k results, even when none of them is related to the question. A similarity threshold is therefore used:
 
-Notes on the design:
+| Best similarity score | Behaviour                                                                                                                                                                                                                                              |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| At or above 0.45      | Keep matches ≥ 0.45, inject them as context and call the LLM.                                                                                                                                                                                          |
+| Below 0.45            | Do not call the LLM. Return: _"Sorry, I can only answer questions about Islamic finance and Malaysian financial compliance (AML/CFT, KYC/CDD and regulation), and I could not find relevant information for that question. Please try rephrasing it."_ |
 
-- **The threshold value is not yet chosen.** It must be calibrated from evaluation results: run the test set (in-scope and out-of-scope questions), record the best similarity score for each, and pick the value that best separates the two groups. A threshold that is too high refuses valid questions; one that is too low lets unrelated questions through.
-- The calibrated value, and the evidence used to choose it, will be recorded in `docs/` and in this README.
-- The threshold is a **first line of defence only**. A question can pass the threshold and still not be answerable from the retrieved context, so the system prompt also instructs the LLM to say it does not know in that case.
-- Whether to refuse outright or ask for clarification (for example, for scores just below the threshold) will be decided during evaluation.
+**How 0.45 was chosen** (16 November 2026, details in [docs/retrieval_evaluation.md](docs/retrieval_evaluation.md)): clear off-topic test questions (weather, recipe, stock tip) scored at most **0.388**, while the lowest correct in-scope match (AML-006) scored **0.495**. A threshold of 0.5 would have dropped that valid match, so 0.45 was chosen between the two groups.
+
+The threshold is a **first line of defence only**. Questions that sound in-domain but are outside scope (for example asking for Shariah certification of a product) can pass the threshold, so the system prompt also instructs the LLM to refuse in those cases. This was confirmed in the live test (see [Section 12](#12-evaluation-and-testing)).
 
 ### Retrieval vs. generation
 
 These are two separate stages, and they can fail in different ways:
 
-| | Retrieval | Generation |
-|---|---|---|
-| **What it does** | Finds the dataset entries that are most *similar* to the question | Writes a natural-language answer from those entries |
-| **Done by** | Sentence Transformer + cosine similarity (runs locally) | OpenAI LLM (remote API call from the backend) |
-| **Deterministic?** | Yes, for a given model and dataset | No; output may vary between calls |
-| **Typical failure** | Returns entries that look similar but do not answer the question | Adds claims not found in the context (hallucination), or ignores the context |
+|                     | Retrieval                                                         | Generation                                                                   |
+| ------------------- | ----------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| **What it does**    | Finds the dataset entries that are most _similar_ to the question | Writes a natural-language answer from those entries                          |
+| **Done by**         | Sentence Transformer + cosine similarity (runs locally)           | OpenAI LLM (remote API call from the backend)                                |
+| **Deterministic?**  | Yes, for a given model and dataset                                | No; output may vary between calls                                            |
+| **Typical failure** | Returns entries that look similar but do not answer the question  | Adds claims not found in the context (hallucination), or ignores the context |
 
-Keeping the stages separate makes the evaluation clearer: we can check whether retrieval found the right entries *before* judging whether the model used them correctly.
+Keeping the stages separate makes the evaluation clearer: retrieval is evaluated on its own ([docs/retrieval_evaluation.md](docs/retrieval_evaluation.md)) before generation quality is judged.
 
-### Prompt outline (planned)
+### Prompt structure
 
-This is an outline, not final wording. The exact system prompt will be stored in the source code once written.
+The full system prompt is in [src/prompt.py](src/prompt.py). Each request sends two messages:
 
 ```text
 SYSTEM:
-You are FinWiseIQ, an educational assistant for Islamic finance and Malaysian
-financial compliance. Answer ONLY using the context below. If the context does
-not contain the answer, say that you do not know. Do not give personalised
-financial, legal or Shariah advice.
+<SYSTEM_PROMPT: FinWiseIQ role, five-category domain, answer ONLY from the
+ CONTEXT, refuse when context is insufficient, refuse personalised advice,
+ fatwa/certification, identity checks, live data and foreign regulations>
 
+USER:
 CONTEXT:
-Q: <retrieved question 1>
-A: <retrieved answer 1>
-...
-Q: <retrieved question k>
-A: <retrieved answer k>
+[1] Q: <retrieved question 1>
+    A: <retrieved answer 1>
+    Source: <source>, <section>
+[2] ...
+[3] ...
 
 USER QUESTION:
 <user's question>
 ```
 
-### OpenAI call (planned sketch)
+### Security rules
 
-The generation step will use the official OpenAI Python SDK and the Responses API. The sketch below is for illustration only. It is **not** project code yet, and the final version will be written and tested by Member 2 in `src/model.py`.
-
-```python
-# src/model.py: planned sketch, not yet implemented
-import os
-
-from dotenv import load_dotenv
-from openai import OpenAI
-
-load_dotenv()                            # reads .env into environment variables
-client = OpenAI(timeout=30)              # the SDK reads OPENAI_API_KEY from the environment
-MODEL = os.environ["OPENAI_MODEL"]       # e.g. gpt-6-luna; never hardcoded
-
-def generate_answer(question: str, context: str) -> str:
-    response = client.responses.create(
-        model=MODEL,
-        instructions=SYSTEM_PROMPT,      # the custom system prompt (src/prompt.py)
-        input=f"CONTEXT:\n{context}\n\nUSER QUESTION:\n{question}",
-    )
-    return response.output_text
-```
-
-Design rules:
-
-- **Backend only.** Only `src/` code calls OpenAI. The Gradio interface calls `process_question()` and receives plain text. The API key is never sent to the browser, printed, logged or shown in error messages.
+- **Backend only.** Only `src/` code calls OpenAI. The Gradio interface calls `process_question()` and receives plain text. The API key is never sent to the browser or shown in the interface.
 - **No hardcoded secrets or model IDs.** Both come from environment variables (`OPENAI_API_KEY`, `OPENAI_MODEL`).
-- **Errors.** API errors, rate limits and timeouts are caught in the backend and turned into a friendly message. The raw error is not shown to the user.
+- **Errors.** API errors, rate limits and timeouts are caught in the backend and turned into a friendly message. The raw error is not shown to the user, and the key is redacted from logged error text.
 
 ---
 
 ## 8. Dataset and Knowledge Sources
 
-> **Status: not yet created.** There is no CSV file in the repository yet, so no dataset preview or row count is given here.
+### Dataset
 
-### Requirement
+[data/finwiseiq_dataset.csv](data/finwiseiq_dataset.csv) contains **50 question–answer pairs, 10 per category**, exceeding the lecturer's minimum of 30. Full details are in [data/README.md](data/README.md).
 
-The lecturer requires a custom CSV dataset of **at least 30 question–answer pairs**. With five categories, a balanced target is at least 6 pairs per category.
+| Column           | Description                                                     | Example                                                                    |
+| ---------------- | --------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| `id`             | Category prefix plus a three-digit number                       | `KYC-001`                                                                  |
+| `category`       | One of the five category names in [Section 3](#3-project-scope) | `KYC/CDD`                                                                  |
+| `question`       | The question, written as a user would ask it                    | _What does Shariah-compliant mean in finance?_                             |
+| `answer`         | A concise answer paraphrased by the team from the source        | –                                                                          |
+| `source`         | Title of the source document(s)                                 | _BNM Policy Document: Shariah Governance (BNM/RH/PD 028-100, 20 Sep 2019)_ |
+| `source_section` | Paragraph, section or part used                                 | _para 1.2-1.4_                                                             |
+| `last_reviewed`  | Date the row was last checked against the source (YYYY-MM-DD)   | `2026-11-17`                                                               |
 
-### Proposed format
+| `id` prefix | `category` value                           | Pairs |
+| ----------- | ------------------------------------------ | ----- |
+| `IFF`       | `Islamic Finance Fundamentals`             | 10    |
+| `IFC`       | `Islamic Financing Contracts`              | 10    |
+| `AML`       | `AML/CFT`                                  | 10    |
+| `KYC`       | `KYC/CDD`                                  | 10    |
+| `REG`       | `Malaysian Financial Regulatory Framework` | 10    |
 
-The minimum required columns are `question` and `answer`. The team proposes these additional columns so that every answer can be traced to its source:
+### How answers were checked
 
-| Column | Description | Example (format only) |
-|---|---|---|
-| `id` | Unique row identifier: a category prefix plus a three-digit number (see below) | `KYC-001` |
-| `category` | One of the five category names in [Section 3](#3-project-scope), written exactly as shown there | `KYC/CDD` |
-| `question` | The question, written as a user would ask it | — |
-| `answer` | A concise answer written by the team, based on the source | — |
-| `source` | Short title of the source document | — |
-| `source_section` | Part, paragraph or recommendation number used | — |
-| `last_reviewed` | Date the row was last checked against the source (YYYY-MM-DD) | — |
-
-Proposed `id` prefixes and `category` values:
-
-| `id` prefix | `category` value |
-|---|---|
-| `IFF` | `Islamic Finance Fundamentals` |
-| `IFC` | `Islamic Financing Contracts` |
-| `AML` | `AML/CFT` |
-| `KYC` | `KYC/CDD` |
-| `REG` | `Malaysian Financial Regulatory Framework` |
-
-The schema is a proposal and will be finalised when the dataset is created. These column names are used throughout this README: the evaluation table in [Section 12](#12-evaluation-and-testing) refers to dataset rows by `id`.
-
-### How answers are checked and updated (proposed process)
-
-1. The member writing a Q&A pair fills in `source` and `source_section` with the exact document and section used.
-2. A second member checks the answer against that section during pull request review.
+1. The member writing a Q&A pair filled in `source` and `source_section` with the exact document and section used.
+2. Answers were checked against the cited section, and corrected where needed (KAN-29).
 3. Answers are paraphrased in the team's own words rather than copied at length from the source documents.
-4. When a source document is replaced by a newer version, rows that cite it are reviewed again and `last_reviewed` is updated.
+4. When a source document is replaced by a newer version, rows that cite it should be reviewed again and `last_reviewed` updated.
 
-### Collected source documents
+### Source documents
 
-The team has collected the documents listed in [Section 17](#17-references), which also lists the categories that still lack a source and the action plan for closing those gaps. Their version details have not yet been verified against the official publications. The documents are stored locally **outside** this repository and are **not** committed, because they are third-party publications. (The FATF document, for example, states that it may not be reproduced without permission.) Links to the official publishers should be used instead.
+All 15 sources, with publisher, date and official link, are listed in [docs/source_registry.md](docs/source_registry.md) and summarised in [Section 17](#17-references). The PDF documents themselves are **not** committed, because they are third-party publications; links to the official publishers are used instead.
 
 ---
 
 ## 9. Installation and Setup
 
-> [!CAUTION]
-> **Planned instructions — step 7 will fail if run now.** `requirements.txt` and `.env.example` now exist, but the dependency installation (step 4) has **not been tested yet**, and there is no application code. **`app.py` is a placeholder name**, not a real file, and must be replaced with the actual entry point once it exists. This notice should be removed only after every command below has been tested on a clean clone.
-
 ### Prerequisites
 
-- Windows 10 or 11
+- Windows 10 or 11 (the commands below use PowerShell)
 - [Python 3.11 or newer](https://www.python.org/downloads/) (pandas 3.x requires Python 3.11+)
 - [Git for Windows](https://git-scm.com/download/win)
 - An OpenAI API key, created in the [OpenAI platform](https://platform.openai.com/api-keys). API usage is billed separately from any ChatGPT subscription.
@@ -376,7 +335,7 @@ py -m venv .venv
 # If PowerShell blocks the script, run this once and then try again:
 #   Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
 
-# 4. Install dependencies (not yet tested)
+# 4. Install dependencies
 python -m pip install --upgrade pip
 pip install -r requirements.txt
 
@@ -386,24 +345,31 @@ Copy-Item .env.example .env
 # 6. Open .env and replace the OPENAI_API_KEY placeholder with your own key (see Section 10)
 notepad .env
 
-# 7. Run the application (PLACEHOLDER: app.py does not exist yet)
-python app.py
+# 7. (Optional) Check the OpenAI connection. Expected: "OpenAI API connection status: OK"
+python -m src.model
+
+# 8. Run the application
+python -m app.interface
 ```
 
-If you use Command Prompt (`cmd.exe`) instead of PowerShell, activate the environment with `.venv\Scripts\activate.bat` and copy the file with `copy .env.example .env`.
+Open the local URL that Gradio prints (normally `http://127.0.0.1:7860`) in a browser. The first question takes a few seconds longer because the embedding model is loaded. Stop the app with **Ctrl+C**.
 
-Gradio normally prints a local URL (such as `http://127.0.0.1:7860`) when it starts. Open that URL in a browser.
+Notes:
+
+- Run the app with `python -m app.interface` from the project folder (not `python app/interface.py`), so Python can find the `src` package.
+- If you use Command Prompt (`cmd.exe`) instead of PowerShell, activate the environment with `.venv\Scripts\activate.bat` and copy the file with `copy .env.example .env`.
+- On the first run, Hugging Face may print _"You are sending unauthenticated requests to the HF Hub"_. This is only a warning about download rate limits and can be ignored.
 
 ---
 
 ## 10. Environment Variables
 
-The application needs two environment variables. Both are read **only by the backend**:
+The application needs two environment variables. Both are read **only by the backend** (`src/model.py`):
 
-| Variable | Secret? | Purpose |
-|---|---|---|
-| `OPENAI_API_KEY` | **Yes** | Your personal OpenAI API key. The official SDK reads it from the environment automatically. |
-| `OPENAI_MODEL` | No | The OpenAI API model ID used for generation (default `gpt-6-luna`; see [Section 5](#5-technology-stack)). |
+| Variable         | Secret? | Purpose                                                                                                   |
+| ---------------- | ------- | --------------------------------------------------------------------------------------------------------- |
+| `OPENAI_API_KEY` | **Yes** | Your personal OpenAI API key. OpenAI secret keys start with `sk-`.                                        |
+| `OPENAI_MODEL`   | No      | The OpenAI API model ID used for generation (default `gpt-6-luna`; see [Section 5](#5-technology-stack)). |
 
 No Gemini or other provider key is needed.
 
@@ -416,12 +382,14 @@ OPENAI_API_KEY=your_openai_api_key_here
 OPENAI_MODEL=gpt-6-luna
 ```
 
+If the placeholder is left unchanged, the app shows a friendly configuration error instead of calling OpenAI.
+
 ### Keeping the key secure
 
 - Each member creates their own `.env` file locally from `.env.example`.
 - `.env` and every `.env.*` file except `.env.example` are excluded by [.gitignore](.gitignore), so Git will not track them. Run `git status` before every commit to check that `.env` is not listed.
-- Never put an API key in source code, notebooks, Issues, pull request descriptions, screenshots or the Gradio interface.
-- The backend must not print or log the key, or include it in error messages shown to users.
+- A variable set in the terminal (for example `$env:OPENAI_API_KEY = "..."`) takes priority over `.env`. Remove it afterwards with `Remove-Item Env:OPENAI_API_KEY`.
+- Never put an API key in source code, notebooks, Jira tasks, pull request descriptions, screenshots or the Gradio interface.
 - If a key is exposed or committed by mistake, **revoke it immediately in the OpenAI platform** and create a new one. Deleting the file in a later commit does not remove the key from Git history.
 
 ### `.gitignore` summary
@@ -433,281 +401,256 @@ The repository's [.gitignore](.gitignore) excludes, among other things:
 - Python caches, virtual environments, downloaded model files and embedding caches;
 - local databases, logs, Gradio flagging data, and IDE/OS files.
 
-It deliberately keeps `.env.example`, `requirements.txt`, source code, tests, Markdown documentation, `data/finwiseiq_dataset.csv` and `data/sources.csv` trackable.
+It deliberately keeps `.env.example`, `requirements.txt`, source code, tests, Markdown documentation and `data/finwiseiq_dataset.csv` trackable.
 
 ---
 
 ## 11. Project Structure
 
-### Current structure
-
-The repository currently contains only configuration and documentation files. There is no application code yet:
-
 ```text
 csc649-group03-finwiseiq/
-├── .env.example
+├── .github/workflows/
+│   └── tests.yml                  # Runs pytest on every pull request to main
+├── app/
+│   └── interface.py               # Gradio chat interface (entry point: python -m app.interface)
+├── data/
+│   ├── finwiseiq_dataset.csv      # Knowledge base: 50 Q&A pairs with sources
+│   ├── sample.csv                 # Early placeholder rows used during setup (not used by the app)
+│   └── README.md                  # Dataset columns, categories and data rules
+├── docs/
+│   ├── source_registry.md         # All 15 source documents with links
+│   ├── retrieval_evaluation.md    # Retrieval accuracy and threshold calibration (KAN-36)
+│   ├── generation_test_results.md # OpenAI generation tests (KAN-24)
+│   ├── frontend_test_results.md   # Gradio interface tests (KAN-33)
+│   ├── pipeline_test_results.md   # End-to-end pipeline test with the real API (KAN-34)
+│   ├── end_to_end_answers.md      # Raw answers for all 20 test questions (KAN-40)
+│   ├── end_to_end_evaluation.md   # Five-dimension evaluation table (KAN-40)
+│   └── security_review.md         # Security and repository review (KAN-42)
+├── src/
+│   ├── __init__.py
+│   ├── retrieval.py               # Dataset loading, embeddings, top-3 cosine search, threshold
+│   ├── prompt.py                  # SYSTEM_PROMPT
+│   ├── model.py                   # OpenAI client, generate_answer(), error handling
+│   └── pipeline.py                # process_question(): retrieval -> context -> generation -> sources
+├── tests/
+│   ├── evaluation_questions.csv   # Test set T01-T20 (15 in-scope, 5 out-of-scope)
+│   ├── evaluate_retrieval.py      # Retrieval evaluation script
+│   ├── evaluate_end_to_end.py     # End-to-end evaluation script (real API)
+│   ├── test_retrieval.py          # Retrieval unit tests
+│   ├── test_model.py              # Generation unit tests (OpenAI mocked)
+│   ├── test_pipeline.py           # Pipeline unit tests (OpenAI mocked)
+│   └── test_interface.py          # Interface unit tests (backend mocked)
+├── .env.example                   # Environment variable template (no real keys)
 ├── .gitignore
-├── README.md
-└── requirements.txt
+├── pytest.ini                     # pytest settings (pythonpath, testpaths)
+├── requirements.txt
+└── README.md
 ```
 
-The local `docs/` folder holds the project proposal PDF, which is git-ignored and shared outside GitHub.
-
-### Planned structure
-
-> The following layout is a proposal. Files will be added through pull requests, and this section will be updated to match.
-
-```text
-csc649-group03-finwiseiq/
-├── app/                 # Gradio interface and application entry point
-├── src/                 # Retrieval, prompt building and OpenAI client code (backend)
-├── data/                # Q&A CSV dataset (≥ 30 pairs)
-├── tests/               # Automated tests and the evaluation question set
-├── docs/                # Evaluation results, design notes, screenshots
-├── .env.example         # Template for environment variables (no real keys)
-├── .gitignore           # Excludes .env, virtual environments, model caches
-├── requirements.txt     # Python dependencies (pin exact versions once tested)
-└── README.md            # Project documentation (this file)
-```
-
-| Path | Purpose |
-|---|---|
-| `data/` | Holds the Q&A CSV dataset. This is the knowledge base for retrieval. |
-| `src/` | Core backend logic: loading the dataset, embedding, semantic search, building the prompt and calling the OpenAI API. The only place where OpenAI is called. |
-| `app/` | The Gradio user interface that connects user input to the RAG pipeline. |
-| `tests/` | Automated tests and the evaluation question set with expected answers. |
-| `docs/` | The completed evaluation table, screenshots and any design notes for the report. |
-| `README.md` | Project documentation. |
-| `.env.example` | Shows which environment variables are needed, without real values. |
-| `.gitignore` | Prevents secrets, virtual environments and cached models from being committed. |
-| `requirements.txt` | Lists the Python packages needed to run the project. |
+| Path     | Purpose                                                                                                                        |
+| -------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `data/`  | The Q&A CSV dataset: the knowledge base for retrieval.                                                                         |
+| `src/`   | Backend logic: retrieval, system prompt, OpenAI generation and the end-to-end pipeline. The only place where OpenAI is called. |
+| `app/`   | The Gradio user interface that connects user input to the pipeline.                                                            |
+| `tests/` | Automated tests, the evaluation question set and the retrieval evaluation script.                                              |
+| `docs/`  | Source registry and test/evaluation results.                                                                                   |
 
 ---
 
 ## 12. Evaluation and Testing
 
-> **Status: not started.** There are no test questions, results or scores yet. No accuracy figures are reported here, and none should be added until the evaluation has actually been run.
+### Automated tests
 
-### Evaluation dimensions
+The test suite has **34 tests** and runs without an API key, because OpenAI (and, for interface tests, the backend) are replaced with mocks:
 
-Each test question will be assessed on the lecturer's five dimensions:
+| File                      | Tests | What is checked                                                                                                                                                     |
+| ------------------------- | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `tests/test_retrieval.py` | 5     | Dataset loads with all columns; a missing column raises an error; relevant questions return sorted matches; off-topic and empty questions return nothing            |
+| `tests/test_model.py`     | 12    | Context-grounded generation; input validation; timeout, authentication, rate-limit, connection and other API errors; key redaction in logs; empty responses         |
+| `tests/test_pipeline.py`  | 5     | Empty question; off-topic fallback without calling OpenAI; context passed and sources appended; API failure returns a friendly message; context blocks are numbered |
+| `tests/test_interface.py` | 12    | Empty/invalid input; response display; chat history; backend exceptions; empty/invalid backend replies                                                              |
 
-| # | Dimension | Question asked | How it will be judged |
-|---|---|---|---|
-| 1 | **Retrieval** | Did the retrieved results contain the relevant answer? | Check whether the expected dataset `id` appears in the top-k results |
-| 2 | **Correctness** | Is the generated answer correct? | Compare the answer with the expected answer and the source document |
-| 3 | **Faithfulness** | Are the claims supported by the retrieved context? | Check that every claim in the answer appears in the retrieved context |
-| 4 | **Refusal** | Does the chatbot say it does not know when the question is outside its knowledge? | Use deliberately out-of-scope questions and check for a clear refusal. Record the best similarity score for every test question so the threshold can be calibrated (see [Section 7](#7-rag-pipeline)). |
-| 5 | **Usefulness** | Is the answer clear and helpful? | Team judgement of clarity and relevance |
-
-### Planned test set
-
-The test set should include:
-
-- **In-scope questions** from all five categories, including some phrased differently from the dataset questions (to test semantic matching rather than exact matching);
-- **Out-of-scope questions** (e.g. "Which stock should I buy?" or questions about another country's tax law) to test refusal;
-- **Edge cases**, such as questions that are similar to two categories at once.
-
-### Planned evaluation table format
-
-| Test ID | Test question | Expected answer (summary) | Expected dataset `id` | Best similarity score | Retrieval | Correctness | Faithfulness | Refusal | Usefulness | Notes |
-|---|---|---|---|---|---|---|---|---|---|---|
-| T01 | *to be written* | *to be written* | *e.g. `KYC-001`, or "none" for out-of-scope* | – | – | – | – | – | – | – |
-
-**Planned location:** the test questions and expected answers will be stored in `tests/` and the completed evaluation table in `docs/`. The exact filenames will be added here once created.
-
-### Running tests before a pull request
-
-Once tests exist, every member should run them locally before opening a pull request. If the team uses `pytest`, the command would be:
+Run them with:
 
 ```powershell
 .\.venv\Scripts\Activate.ps1
 python -m pytest
 ```
 
-`pytest` is not yet listed as a dependency. This command will not work until tests and the dependency are added.
+The same tests run automatically on every pull request through GitHub Actions, and a pull request cannot be merged into `main` unless they pass.
+
+### Evaluation dimensions
+
+Each test question is assessed on the lecturer's five dimensions:
+
+| #   | Dimension        | Question asked                                                                    | How it is judged                                                          |
+| --- | ---------------- | --------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| 1   | **Retrieval**    | Did the retrieved results contain the relevant answer?                            | Check whether the expected dataset `id` appears in the top-3 results      |
+| 2   | **Correctness**  | Is the generated answer correct?                                                  | Compare the answer with the expected key points and the source document   |
+| 3   | **Faithfulness** | Are the claims supported by the retrieved context?                                | Check that every claim in the answer appears in the retrieved context     |
+| 4   | **Refusal**      | Does the chatbot say it does not know when the question is outside its knowledge? | Out-of-scope questions should get the fallback message or a clear refusal |
+| 5   | **Usefulness**   | Is the answer clear and helpful?                                                  | Team judgement of clarity and relevance                                   |
+
+### Test set
+
+[tests/evaluation_questions.csv](tests/evaluation_questions.csv) holds **20 test questions** (T01–T20): 15 in-scope questions from all five categories, worded differently from the dataset questions to test semantic rather than keyword matching, and 5 out-of-scope questions. Each row records the expected answer key points and the expected dataset `id`.
+
+### Results so far
+
+**Retrieval** (16 November 2026, [docs/retrieval_evaluation.md](docs/retrieval_evaluation.md), reproduce with `python -m tests.evaluate_retrieval`):
+
+| Metric                              | Result         |
+| ----------------------------------- | -------------- |
+| In-scope: correct row at rank 1     | 12 / 15 (80%)  |
+| In-scope: correct row in top 3      | 15 / 15 (100%) |
+| Out-of-scope: rejected by threshold | 3 / 5          |
+
+The two out-of-scope questions that pass the threshold (T19 Shariah certification, T20 US AML rules) sound in-domain; these are handled by the system prompt's refusal rules.
+
+**Generation** (17 November 2026, [docs/generation_test_results.md](docs/generation_test_results.md)): live API tests with a relevant question, an insufficient-context question and an out-of-scope stock-tip question all passed.
+
+**End-to-end pipeline** (24 November 2026, [docs/pipeline_test_results.md](docs/pipeline_test_results.md)), using the real OpenAI API:
+
+| Question                                            | Result                                                                             |
+| --------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| What is customer due diligence?                     | Grounded answer with three BNM AML/CFT policy document sources                     |
+| Can you explain murabahah in simple words?          | Grounded answer with BNM Murabahah, Ijarah and Mudarabah sources                   |
+| Write me a nasi lemak recipe                        | Fallback message; OpenAI not called                                                |
+| Is my company product officially Shariah-compliant? | Declined to certify; referred the user to a qualified Shariah scholar or regulator |
+| Invalid API key                                     | Friendly error message; no crash                                                   |
+
+**Gradio interface** (24 November 2026, KAN-35): through the running app, the Murabahah and customer due diligence questions returned answers with sources, off-topic questions returned the fallback, and empty input returned "Please type a question."
+
+**End-to-end evaluation** (24 November 2026, KAN-40, [docs/end_to_end_evaluation.md](docs/end_to_end_evaluation.md), reproduce with `python -m tests.evaluate_end_to_end`): all 20 test questions were run through the full pipeline with the real OpenAI API and judged on the five dimensions.
+
+| Dimension | Result |
+|---|---|
+| Retrieval: in-scope, correct row in top 3 | 15 / 15 (12 at rank 1) |
+| Correctness (in-scope) | 13 / 15 fully correct, 2 partial, 0 wrong |
+| Faithfulness (17 generated answers) | 17 / 17 |
+| Refusal (out-of-scope) | 5 / 5 (3 by the threshold, 2 by the system prompt) |
+| Usefulness | 20 / 20 |
+
+The two partial answers were T13, where the expected Federal Court detail is not in the dataset row (a dataset gap, not invented by the model), and T14, where the model left out Malaysia's FATF membership because the question did not ask about it.
 
 ---
 
 ## 13. GitHub Collaboration
 
-All four members must contribute to this repository using their own GitHub accounts. The team follows the lecturer's collaboration rules:
+All four members contribute to this repository using their own GitHub accounts. The team follows the lecturer's collaboration rules:
 
-| Rule | Practice |
-|---|---|
-| Individual accounts | Every member commits from their own GitHub account, with Git configured to use the email linked to that account so commits are attributed correctly. Commits should not be made on behalf of others. |
-| At least 10 meaningful commits | The lecturer requires at least 10 meaningful commits. *(The team should confirm with the lecturer whether this is per member or per group.)* |
-| Commits spread over time | Commits must fall on at least 5 different days, across 3 or more weeks of the project period (Weeks 5–9). |
-| Issues for every task | Each task (e.g. "Write 6 Q&A pairs for KYC/CDD") has a GitHub Issue with a clear description and an assignee. |
-| Project board | Issues are tracked on a GitHub Project board with columns such as *To do*, *In progress*, *In review* and *Done*. |
-| Separate branches | Work is done on feature branches, never directly on `main`. |
-| Reviewed pull requests | Every pull request is reviewed and approved by at least one other member before merging. |
-| No force-pushing to `main` | `git push --force` to `main` is not allowed. Enable branch protection on `main` to enforce this. |
-| No secrets or model files | API keys, `.env` files and downloaded model files are never committed. |
-| `.gitignore` and `.env.example` | Both files are kept in the repository and kept up to date. |
+| Rule                            | How the team applied it                                                                                                                                              |
+| ------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Individual accounts             | Every member commits from their own GitHub account.                                                                                                                  |
+| At least 10 meaningful commits  | Each commit makes one reviewable change, with a message that names the Jira task (e.g. `KAN-34: ...`) and describes what changed.                                    |
+| Commits spread over time        | Commits on `main` span several days from 12 November 2026 onwards.                                                                                                   |
+| Tasks tracked                   | Each task is a Jira issue in project **KAN**, grouped into five phase epics, with an assignee and a due date, moved across _To Do → In Progress → In Review → Done_. |
+| Separate branches               | Work is done on feature branches (e.g. `feature/rag-retrieval`, `feature/openai-integration`, `feature/knowledge-dataset`), never directly on `main`.                |
+| Reviewed pull requests          | Branch protection on `main` requires at least one approving review and a passing `tests` check before merging.                                                       |
+| No force-pushing to `main`      | Protected by branch protection.                                                                                                                                      |
+| No secrets or model files       | API keys, `.env` files, PDFs and downloaded model files are excluded by `.gitignore` and never committed.                                                            |
+| `.gitignore` and `.env.example` | Both files are kept in the repository.                                                                                                                               |
 
-### What counts as a meaningful commit
-
-A meaningful commit makes one real, reviewable change and has a message that says what changed. For example:
-
-- adding or correcting a set of Q&A pairs, with their sources;
-- implementing or fixing part of the retrieval, prompt or interface code;
-- adding test questions or recording evaluation results;
-- updating documentation to reflect work that was actually done.
-
-Commits that exist only to raise the count, such as whitespace changes, empty commits or splitting one change into many trivial commits, are **not** meaningful and should not be made. The commit spread across Weeks 5–9 should come naturally from planning the work in small Issues and working on them steadily, not from timing commits artificially.
-
-To check each member's commit history locally:
-
-```powershell
-# Number of commits per author
-git shortlog -sn --all
-
-# Dates of each commit by author, to check the spread across days and weeks
-git log --all --format="%ad  %an  %s" --date=short
-```
-
-### Suggested workflow
+### Workflow used
 
 ```powershell
 # Start from an up-to-date main branch
 git checkout main
 git pull origin main
 
-# Create a branch for your Issue (example: Issue #12)
-git checkout -b feature/12-kyc-dataset
+# Create a branch for the Jira task
+git checkout -b feature/<short-name>
 
-# Make changes, then check what is staged. Make sure .env is NOT listed.
+# Make changes, run the tests, then stage specific files (not "git add .")
+python -m pytest
 git add <files>
-git status
-git commit -m "Add KYC/CDD Q&A pairs (#12)"
+git status            # make sure .env is NOT listed
+git commit -m "KAN-<number>: <what changed>"
 
-# Push your branch and open a pull request on GitHub
-git push -u origin feature/12-kyc-dataset
+# Push the branch and open a pull request on GitHub
+git push -u origin feature/<short-name>
 ```
 
-In the pull request description, write `Closes #12` so the Issue closes automatically when the pull request is merged.
+In the pull request, name the Jira task (e.g. `Jira: KAN-34`), describe what changed and how it was tested, and request a review from the teammate whose code it affects. If `main` has moved on, merge `origin/main` into the feature branch and re-run the tests before merging.
 
-### Before opening a pull request
+To check each member's commit history locally:
 
-1. Pull the latest `main` and resolve any conflicts on your branch.
-2. Run the tests (once they exist; see [Section 12](#12-evaluation-and-testing)).
-3. Run the app locally and check that your change works.
-4. Run `git status` and confirm that `.env`, `.venv/` and model files are not staged.
-
-### Branch naming convention (suggested)
-
-| Prefix | Use |
-|---|---|
-| `feature/` | New functionality (e.g. `feature/8-gradio-ui`) |
-| `data/` | Dataset additions or corrections (e.g. `data/15-aml-pairs`) |
-| `docs/` | Documentation changes (e.g. `docs/3-readme`) |
-| `fix/` | Bug fixes |
+```powershell
+git shortlog -sn --all --no-merges
+git log --all --format="%ad  %an  %s" --date=short
+```
 
 ---
 
 ## 14. Limitations
 
-### Current limitations
-
-- **No implementation yet.** The project is at the planning stage. None of the features described above can be demonstrated yet.
-- **No dataset yet.** Domain coverage cannot be measured until the CSV dataset has been written.
-
-### Anticipated limitations of the planned design
-
-- **Limited coverage.** A dataset of around 30 or more Q&A pairs covers only a small part of five broad topics. Many reasonable questions will have no matching entry.
-- **Outdated or incomplete sources.** Regulations and standards are revised over time. Answers can become outdated if the dataset is not reviewed against newer versions.
-- **Retrieval errors.** The most similar question is not always the right one. Two questions can share many words but ask different things.
-- **Similarity does not guarantee relevance.** A high cosine similarity score shows that two texts are semantically close, not that the retrieved answer is factually correct for the user's question. The planned threshold filters out clearly unrelated questions but cannot catch this case.
-- **A single threshold is a trade-off.** Any fixed threshold will wrongly refuse some valid questions and wrongly accept some unrelated ones. Its value depends on the size and wording of the dataset and should be re-calibrated whenever the dataset changes significantly.
-- **Questions are matched, not answers.** The baseline embeds dataset *questions* only. A user question that matches the content of an answer but not the wording of its question may be missed.
+- **Limited coverage.** 50 Q&A pairs cover only a small part of five broad topics. Reasonable questions with no matching entry (for example _zakat_, which is not in the dataset) receive the fallback message.
+- **Retrieval near-misses.** In 3 of 15 in-scope test questions, the expected row was ranked second rather than first (e.g. a murabahah question matched an "ijarah vs murabahah" row first). All three were still in the top 3 and therefore reached the model as context.
+- **Similarity does not guarantee relevance.** A high cosine similarity score shows that two texts are semantically close, not that the retrieved answer is correct for the question. Questions that sound in-domain but are out of scope can pass the threshold and rely on the system prompt to refuse.
+- **A single threshold is a trade-off.** 0.45 was calibrated on 20 test questions. It may wrongly refuse some valid questions and accept some unrelated ones, and should be re-calibrated whenever the dataset changes significantly.
+- **Questions are matched, not answers.** Only dataset _questions_ are embedded. A user question that matches the content of an answer but not the wording of its question may be missed.
+- **No conversation memory.** Each question is answered on its own; follow-ups such as "tell me more" do not use earlier turns.
 - **LLM hallucination.** Even with context injection and a strict system prompt, the LLM can still add unsupported details or misread the context.
+- **Outdated sources.** Regulations and standards are revised over time. Answers can become outdated if the dataset is not reviewed against newer versions.
 - **External API dependence and cost.** The chatbot depends on the OpenAI API being available. Rate limits, quotas, latency, usage charges and model deprecations are outside the team's control.
-- **General-purpose embedding model.** `all-MiniLM-L6-v2` is trained mainly on general English text. It may represent Arabic-derived Islamic finance terms (e.g. *tawarruq*, *wa'd*) or Malay terms less accurately.
+- **General-purpose embedding model.** `all-MiniLM-L6-v2` is trained mainly on general English text. It may represent Arabic-derived Islamic finance terms or Malay terms less accurately.
 - **Human verification is required.** Regulatory and Shariah-related information must be checked by qualified people before anyone relies on it.
 
 ---
 
 ## 15. Future Improvements
 
-These are ideas for after the baseline is complete. None are implemented.
-
-- Show the source document and section for each answer (source-aware responses).
-- Refine the baseline similarity threshold: for example, separate thresholds per category, or a re-ranking step that checks whether each retrieved answer actually addresses the question.
+- Refine the similarity threshold: for example, separate thresholds per category, or a re-ranking step that checks whether each retrieved answer actually addresses the question.
 - Embed answers as well as questions, or combine semantic and keyword search (hybrid retrieval).
 - Add multi-turn conversation history.
-- Expand the dataset and add a scheduled review against new versions of the source documents.
+- Expand the dataset (e.g. _zakat_, _takaful_, _sukuk_) and add a scheduled review against new versions of the source documents.
 - Retrieve directly from chunks of the source documents rather than only from a hand-written Q&A dataset.
 - Compare other embedding models, including multilingual ones, for Malay and Arabic terms.
 - Support questions and answers in Bahasa Melayu.
-- Automate parts of the evaluation (e.g. retrieval hit rate over the test set).
 - Deploy a public demo (e.g. on Hugging Face Spaces) with the API key stored as a secret.
 
 ---
 
 ## 16. Team Members
 
-| Member name | GitHub username | Assigned role | Main responsibilities |
-|---|---|---|---|
-| **Nurin Irdina** | **@nurinirdnz** | **Team Leader / Backend Developer — RAG & System Integration** | Lead project planning and technical decisions; design the system architecture; develop CSV data loading, text embeddings and semantic retrieval using Sentence Transformers; implement cosine similarity, top-3 retrieval and relevance threshold; develop the RAG pipeline; integrate retrieval with OpenAI generation; coordinate frontend-backend integration, GitHub collaboration and technical evaluation. |
-| **[Member 2 name]** | **[@username]** | **Backend Developer — OpenAI LLM Integration** | Integrate the OpenAI API; develop the custom system prompt; implement context-based answer generation; handle API errors and timeouts; implement response validation and domain restrictions; carry out LLM testing and evaluation. |
-| **[Member 3 name]** | **[@username]** | **Domain Specialist / Knowledge Base Developer** | Research Islamic finance and Malaysian financial regulatory sources; develop and maintain the custom CSV question-and-answer dataset; organise knowledge categories; verify factual accuracy, paraphrasing and source references; maintain the source registry. |
-| **[Member 4 name]** | **[@username]** | **Frontend Developer — Gradio & Testing** | Develop the Gradio chatbot interface; implement chat input and response display; integrate the frontend with the backend; handle loading states and error messages; conduct interface and end-to-end testing; assist with evaluation documentation. |
+| Member                         | GitHub username                                        | Role                                         | Main contributions                                                                                                                                                                                                                                                                                   |
+| ------------------------------ | ------------------------------------------------------ | -------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Nurin Irdina** (Team Leader) | [@nurinirdnz](https://github.com/nurinirdnz)           | Backend Developer — RAG & System Integration | Project planning, Jira and repository setup; system architecture; dataset loading, embeddings, top-3 semantic retrieval and threshold calibration (`src/retrieval.py`); retrieval evaluation; end-to-end pipeline (`src/pipeline.py`); Gradio–backend integration; CI workflow; pull request reviews |
+| **Nurisha Adilla**             | [@nurishaadilla](https://github.com/nurishaadilla)     | Backend Developer — OpenAI LLM Integration   | System prompt (`src/prompt.py`); OpenAI client and context-based answer generation with error handling (`src/model.py`); generation tests and live API testing                                                                                                                                       |
+| **Syafiqah Wahidah**           | [@syafiqahwahidah](https://github.com/syafiqahwahidah) | Domain Specialist / Knowledge Base Developer | Source research; 50-pair knowledge dataset (`data/finwiseiq_dataset.csv`); source registry; source checking and answer corrections                                                                                                                                                                   |
+| **Siti Nasyitah**              | [@nasyitahrohizat](https://github.com/nasyitahrohizat) | Frontend Developer — Gradio & Testing        | Gradio chat interface (`app/interface.py`); input validation and error messages; interface tests and frontend test results                                                                                                                                                                           |
 
-### Team Collaboration
-
-All team members are expected to contribute to testing, debugging, documentation and final project evaluation.
-
-Each member will:
-- Work on assigned GitHub Issues.
-- Use individual feature branches.
-- Make meaningful commits through their own GitHub account.
-- Submit pull requests for review by another team member.
-- Participate in code reviews, integration and testing.
+All members also take part in testing, code review and documentation.
 
 ---
 
 ## 17. References
 
-### A. Collected sources
+### Knowledge sources
 
-The team has collected local copies of the following documents. The dataset will be written from them. They are kept **outside** this repository and are not redistributed here.
+The dataset is written from the following 15 sources. Full titles, dates and official links are in [docs/source_registry.md](docs/source_registry.md).
 
-> [!NOTE]
-> **Version details need verification.** The reference numbers and dates below were taken from the title pages of the team's local copies. They have **not yet been checked against the official publishers' websites**, so this README does not claim that any of these is the latest version. Before the dataset is finalised, a member should confirm each entry on the official site, record the date of the check, and change its status to *Verified*. If a newer version exists, the newer version should be obtained and the dataset rows that cite this document reviewed again.
+| No  | Source                                                                                                 | Publisher                        | Used for      |
+| --- | ------------------------------------------------------------------------------------------------------ | -------------------------------- | ------------- |
+| S1  | Policy Document: AML/CFT/CPF and TFS for Financial Institutions (BNM/RH/PD 030-14), 5 Feb 2024         | Bank Negara Malaysia             | AML, KYC, REG |
+| S2  | Policy Document: Shariah Governance (BNM/RH/PD 028-100), 20 Sep 2019                                   | Bank Negara Malaysia             | IFF, REG      |
+| S3  | IFSB-31: Guiding Principles for Effective Supervision of Shariah Governance, Jul 2025                  | Islamic Financial Services Board | IFF           |
+| S4  | Policy Document: Murabahah (BNM/RH/STD 028-4), 23 Dec 2013                                             | Bank Negara Malaysia             | IFC           |
+| S5  | Policy Document: Tawarruq, 28 Dec 2018                                                                 | Bank Negara Malaysia             | IFC           |
+| S6  | Policy Document: Ijarah (BNM/RH/PD 028-2), 29 Jun 2018                                                 | Bank Negara Malaysia             | IFC           |
+| S7  | Policy Document: Musyarakah (BNM/RH/STD 028-7), 20 Apr 2015                                            | Bank Negara Malaysia             | IFC           |
+| S8  | Policy Document: Mudarabah (BNM/RH/STD 028-8), 20 Apr 2015                                             | Bank Negara Malaysia             | IFC           |
+| S9  | Central Bank of Malaysia Act 2009 (Act 701)                                                            | Parliament of Malaysia           | REG           |
+| S10 | Anti-Money Laundering, Anti-Terrorism Financing and Proceeds of Unlawful Activities Act 2001 (Act 613) | Parliament of Malaysia           | AML, REG      |
+| S11 | FATF Mutual Evaluation Report of Malaysia 2025, and Malaysia country page                              | Financial Action Task Force      | REG           |
+| S12 | Islamic Banking & Takaful (Malaysian Financial Sector page)                                            | Bank Negara Malaysia             | IFF           |
+| S13 | Islamic Financial Services Act 2013 (Act 759)                                                          | Parliament of Malaysia           | REG           |
+| S14 | Guidelines on Islamic Capital Market Products and Services (SC-GL/1-2022 (R2-2026))                    | Securities Commission Malaysia   | REG           |
+| S15 | Shariah Resolutions in Islamic Finance (Second Edition), Oct 2010                                      | Bank Negara Malaysia             | IFF           |
 
-| Issuing body | Document | Reference / date (as stated on local copy) | Relevant `category` values | Verification status |
-|---|---|---|---|---|
-| Bank Negara Malaysia | *Anti-Money Laundering, Countering Financing of Terrorism, Countering Proliferation Financing and Targeted Financial Sanctions for Financial Institutions (AML/CFT/CPF and TFS for FIs)* | BNM/RH/PD 030-14; issued 5 February 2024 | `AML/CFT`; `KYC/CDD`; `Malaysian Financial Regulatory Framework` | Not yet verified |
-| Bank Negara Malaysia | *Anti-Money Laundering, Countering Financing of Terrorism and Targeted Financial Sanctions for Designated Non-Financial Businesses and Professions (DNFBPs) & Non-Bank Financial Institutions (NBFIs)* | BNM/FIED/DNFBP; issued 31 December 2019 | `AML/CFT`; `KYC/CDD` | Not yet verified |
-| Bank Negara Malaysia | *Shariah Governance* (policy document) | BNM/RH/PD 028-100; issued 20 September 2019 | `Islamic Finance Fundamentals`; `Malaysian Financial Regulatory Framework` | Not yet verified |
-| Financial Action Task Force | *International Standards on Combating Money Laundering and the Financing of Terrorism & Proliferation: The FATF Recommendations* | Adopted February 2012; local copy marked "Updated June 2026" | `AML/CFT`; `KYC/CDD` | Not yet verified |
-| Islamic Financial Services Board | *IFSB-31: Guiding Principles for Effective Supervision of Shariah Governance* | Dated July 2025 | `Islamic Finance Fundamentals`; `Malaysian Financial Regulatory Framework` | Not yet verified |
+BNM policy documents are copyrighted by BNM. The dataset only paraphrases short points and cites the paragraph used.
 
-Official publisher websites for verification: [Bank Negara Malaysia](https://www.bnm.gov.my/), [FATF](https://www.fatf-gafi.org/) and [IFSB](https://www.ifsb.org/).
-
-### B. Sources under consideration (not yet collected)
-
-These are **areas where a source is still needed**, not references. No specific document has been chosen or consulted for them yet, so no titles, dates or links are given. They will move to table A only once a document has been obtained and checked.
-
-| Needed for | What is being looked for | Status |
-|---|---|---|
-| `Islamic Financing Contracts` | An authoritative document covering individual contracts such as *murabahah*, *ijarah*, *musharakah*, *mudarabah* and *tawarruq*. BNM's Shariah policy documents on specific contracts are one possible place to look. | Not yet identified |
-| `Malaysian Financial Regulatory Framework` (capital market aspects) | A Securities Commission Malaysia (SC) publication, if the dataset will include SC-related content | Not yet identified |
-
-### C. Source coverage action plan
-
-Every category must be backed by at least one authoritative, verified source before its Q&A pairs are written. Each action below should become a GitHub Issue.
-
-| `category` | Collected source(s) | Coverage | Action needed |
-|---|---|---|---|
-| `Islamic Finance Fundamentals` | BNM *Shariah Governance*; IFSB-31 | **Partial.** Both documents focus on governance, not on core principles such as *riba*, *gharar* and *maysir*. | Identify an authoritative source that explains the core principles. |
-| `Islamic Financing Contracts` | None | **Gap** | Identify and collect authoritative source(s) for each contract to be covered (see table B). |
-| `AML/CFT` | BNM AML/CFT/CPF and TFS for FIs; BNM AML/CFT and TFS for DNFBPs and NBFIs; FATF Recommendations | Collected | Verify versions (table A). |
-| `KYC/CDD` | Same three documents as `AML/CFT` | Collected | Verify versions (table A). |
-| `Malaysian Financial Regulatory Framework` | BNM documents above; IFSB-31 | **Partial.** No document describing the overall roles of BNM and the SC. | Decide whether SC content is in scope; if so, identify an SC source (table B). |
-
-### Tools and libraries (planned)
+### Tools and libraries
 
 - Sentence Transformers documentation: <https://www.sbert.net/>
 - Gradio documentation: <https://www.gradio.app/docs>
@@ -717,4 +660,4 @@ Every category must be backed by at least one authoritative, verified source bef
 
 ---
 
-*This README was last updated at the planning stage, before any code was committed. Update the status labels as features are completed.*
+_Last updated 24 November 2026, after the end-to-end evaluation (KAN-40). Re-run both evaluation scripts and update Section 12 if the dataset changes._
