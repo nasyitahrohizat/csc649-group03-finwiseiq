@@ -43,15 +43,22 @@ def format_sources(results: list[dict]) -> str:
             sources.append(s)
     return "\n".join(f"- {s}" for s in sources)
 
-MAX_HISTORY_MESSAGES = 10  # the last 3 questions and 3 answers
+MAX_HISTORY_MESSAGES = 6  # the last 3 questions and 3 answers
 MAX_MESSAGE_CHARS = 500   # keep each earlier message short
 
-# Words that show a message refers back to the earlier question
-# (English and Malay), e.g. "tell me more", "give an example", "terangkan lagi".
-FOLLOW_UP_WORDS = {
-    "it", "its", "this", "that", "these", "those", "they", "them",
-    "more", "example", "examples", "elaborate", "explain", "why", "how",
-    "about", "also", "else", "difference", "lagi", "contoh", "tu", "ni",
+# Words that point back to something said earlier ("is IT halal?", "apa TU?").
+REFERENCE_WORDS = {"it", "its", "this", "that", "these", "those", "they", "them", "tu", "ni"}
+
+# A pure follow-up uses ONLY these words: it asks for more about the earlier
+# topic and brings no new topic of its own (English and Malay).
+FOLLOW_UP_WORDS = REFERENCE_WORDS | {
+    "tell", "me", "more", "again", "give", "an", "a", "another", "example", "examples",
+    "can", "could", "you", "please", "explain", "elaborate", "detail", "details",
+    "why", "how", "what", "does", "do", "is", "mean", "means", "and", "so", "ok",
+    "okay", "also", "else", "further", "simpler", "simply", "in", "words", "other",
+    "about", "i", "don", "t", "understand",
+    "lagi", "contoh", "terangkan", "jelaskan", "boleh", "bagi", "apa", "maksud",
+    "kenapa", "macam", "mana", "sikit", "lebih", "lanjut", "tak", "faham",
 }
 
 
@@ -65,6 +72,37 @@ def _message_text(content) -> str:
         )
     return ""
 
+
+def _words(text: str) -> list[str]:
+    """Lower-case words only, e.g. "Tell me more!" -> ["tell", "me", "more"]."""
+    return re.findall(r"[a-z]+", text.lower())
+
+
+def is_follow_up(question: str) -> bool:
+    """True if the message only asks for more about the earlier topic.
+
+    "Tell me more" or "terangkan lagi" -> True.
+    "How do I cook nasi lemak?" -> False ("cook", "nasi", "lemak" are a new topic).
+    """
+    words = _words(question)
+    return bool(words) and all(w in FOLLOW_UP_WORDS for w in words)
+
+
+def refers_back(question: str) -> bool:
+    """True if the message points back with a word such as "it" or "that"."""
+    return bool(set(_words(question)) & REFERENCE_WORDS)
+
+
+def last_topic_question(history: list[dict] | None) -> str:
+    """The user's last real question, skipping follow-ups such as "tell me more"."""
+    for msg in reversed(history or []):
+        if isinstance(msg, dict) and msg.get("role") == "user":
+            text = _message_text(msg.get("content")).strip()
+            if text and not is_follow_up(text):
+                return text
+    return ""
+
+
 def format_history(history: list[dict] | None) -> str:
     """Turn the last few chat messages into short text for OpenAI (sources removed)."""
     lines = []
@@ -77,20 +115,6 @@ def format_history(history: list[dict] | None) -> str:
             lines.append(f"{speaker}: {text[:MAX_MESSAGE_CHARS]}")
     return "\n".join(lines)
 
-def last_user_question(history: list[dict] | None) -> str:
-    """The user's previous question, used when a follow-up is too vague to search alone."""
-    for msg in reversed(history or []):
-        if isinstance(msg, dict) and msg.get("role") == "user":
-            text = _message_text(msg.get("content")).strip()
-            if text:
-                return text
-    return ""
-
-
-def is_follow_up(question: str) -> bool:
-    """True if the message seems to refer back to the earlier question."""
-    words = set(re.findall(r"[a-z]+", question.lower()))
-    return bool(words & FOLLOW_UP_WORDS)
 
 def process_question(question: str, history: list[dict] | None = None) -> str:
     """Answer a user question, using earlier messages for follow-ups. Never raises."""
@@ -99,20 +123,23 @@ def process_question(question: str, history: list[dict] | None = None) -> str:
     question = question.strip()
 
     results = retrieve_context(question)
-    if not results:
-        # A follow-up such as "tell me more" has no topic of its own,
-        # so search again together with the previous question.
-        previous = last_user_question(history)
-        if previous and is_follow_up(question):
-            results = retrieve_context(f"{previous} {question}")
+    topic = last_topic_question(history)
+    uses_history = False
+    if topic and (is_follow_up(question) or (results and refers_back(question))):
+        # "Tell me more" has no topic of its own, and "How is it different
+        # from ijarah?" needs the earlier topic too, so search with both.
+        combined = retrieve_context(f"{topic} {question}")
+        if combined:
+            results, uses_history = combined, True
     if not results:
         return FALLBACK_MESSAGE  # off-topic: OpenAI is NOT called
 
     context = format_context(results)
-    conversation = format_history(history)
-    if conversation:
+    if uses_history:
+        # Only follow-ups get the earlier conversation; new questions are sent alone.
         question_for_model = (
-            f"CONVERSATION SO FAR:\n{conversation}\n\nCURRENT QUESTION:\n{question}"
+            f"CONVERSATION SO FAR:\n{format_history(history)}\n\n"
+            f"CURRENT QUESTION:\n{question}"
         )
     else:
         question_for_model = question

@@ -4,6 +4,8 @@ OpenAI is never called here: `monkeypatch` temporarily replaces
 model.generate_answer with a fake, because the GitHub tests check has
 no API key, and real calls cost money and give different answers.
 """
+import pytest
+
 from src import model, pipeline
 
 
@@ -65,39 +67,47 @@ HISTORY = [
     {"role": "assistant", "content": "A cost-plus sale.\n\nSources:\n- BNM Murabahah PD"},
 ]
 
+ROW = {"question": "What is murabahah?", "answer": "A cost-plus sale.",
+       "source": "BNM Murabahah PD", "source_section": "para 1.3"}
 
-def test_follow_up_searches_again_with_previous_question(monkeypatch):
-    searched = []
-    row = {"question": "What is murabahah?", "answer": "A cost-plus sale.",
-           "source": "BNM Murabahah PD", "source_section": "para 1.3"}
 
+def fake_search(searched, matches):
+    """A fake retrieve_context that records each search and only matches some."""
     def fake_retrieve(q):
         searched.append(q)
-        return [] if q == "Tell me more" else [row]
+        return [ROW] if matches(q) else []
+    return fake_retrieve
 
-    monkeypatch.setattr(pipeline, "retrieve_context", fake_retrieve)
+
+def test_follow_up_searches_with_previous_topic(monkeypatch):
+    searched = []
+    monkeypatch.setattr(pipeline, "retrieve_context",
+                        fake_search(searched, lambda q: "murabahah" in q))
     monkeypatch.setattr(model, "generate_answer", lambda q, c: "Fake answer.", raising=False)
     out = pipeline.process_question("Tell me more", HISTORY)
-    # "Tell me more" alone found nothing, so it searched again with the previous question.
     assert searched == ["Tell me more", "What is murabahah? Tell me more"]
     assert out.startswith("Fake answer.")
 
 
-def test_off_topic_message_after_a_question_still_gets_fallback(monkeypatch):
+def test_chained_follow_ups_keep_the_original_topic(monkeypatch):
     searched = []
+    monkeypatch.setattr(pipeline, "retrieve_context",
+                        fake_search(searched, lambda q: "murabahah" in q))
+    monkeypatch.setattr(model, "generate_answer", lambda q, c: "Fake answer.", raising=False)
+    history = HISTORY + [
+        {"role": "user", "content": "Tell me more"},
+        {"role": "assistant", "content": "More about murabahah."},
+    ]
+    pipeline.process_question("Terangkan lagi", history)
+    # "Tell me more" is skipped: the topic is still the murabahah question.
+    assert searched[-1] == "What is murabahah? Terangkan lagi"
 
-    def fake_retrieve(q):
-        searched.append(q)
-        return []
 
-    monkeypatch.setattr(pipeline, "retrieve_context", fake_retrieve)
-    out = pipeline.process_question("Write me a nasi lemak recipe", HISTORY)
-    # Not a follow-up, so it is NOT searched again with the previous question.
-    assert searched == ["Write me a nasi lemak recipe"]
-    assert out == pipeline.FALLBACK_MESSAGE
-
-def test_earlier_messages_are_sent_to_openai_without_sources(monkeypatch):
+def test_comparison_keeps_the_previous_topic(monkeypatch):
+    searched = []
     seen = {}
+    monkeypatch.setattr(pipeline, "retrieve_context",
+                        fake_search(searched, lambda q: True))
 
     def fake_generate(question, context):
         seen["question"] = question
@@ -105,7 +115,48 @@ def test_earlier_messages_are_sent_to_openai_without_sources(monkeypatch):
 
     monkeypatch.setattr(model, "generate_answer", fake_generate, raising=False)
     pipeline.process_question("How is it different from ijarah?", HISTORY)
+    assert searched == ["How is it different from ijarah?",
+                        "What is murabahah? How is it different from ijarah?"]
     assert "User: What is murabahah?" in seen["question"]
-    assert "FinWiseIQ: A cost-plus sale." in seen["question"]
     assert "CURRENT QUESTION:\nHow is it different from ijarah?" in seen["question"]
     assert "Sources:" not in seen["question"]
+
+
+@pytest.mark.parametrize("message", ["How do I cook nasi lemak?", "Write me a nasi lemak recipe", "hi"])
+def test_off_topic_after_a_question_still_gets_fallback(monkeypatch, message):
+    searched = []
+    monkeypatch.setattr(pipeline, "retrieve_context",
+                        fake_search(searched, lambda q: "murabahah" in q))
+    out = pipeline.process_question(message, HISTORY)
+    # A new topic is NOT combined with the earlier question.
+    assert searched == [message]
+    assert out == pipeline.FALLBACK_MESSAGE
+
+
+def test_new_question_is_sent_without_earlier_messages(monkeypatch):
+    seen = {}
+    monkeypatch.setattr(pipeline, "retrieve_context", lambda q: [ROW])
+
+    def fake_generate(question, context):
+        seen["question"] = question
+        return "Fake answer."
+
+    monkeypatch.setattr(model, "generate_answer", fake_generate, raising=False)
+    pipeline.process_question("What is ijarah?", HISTORY)
+    assert seen["question"] == "What is ijarah?"
+
+
+def test_only_the_last_six_messages_are_sent():
+    history = []
+    for n in range(1, 11):
+        history.append({"role": "user", "content": f"Question {n}"})
+        history.append({"role": "assistant", "content": f"Answer {n}"})
+    text = pipeline.format_history(history)
+    assert text.count("\n") + 1 == pipeline.MAX_HISTORY_MESSAGES == 6
+    assert "Question 8" in text and "Question 7" not in text
+
+
+def test_long_messages_are_shortened():
+    history = [{"role": "assistant", "content": "x" * 2000}]
+    text = pipeline.format_history(history)
+    assert len(text) == len("FinWiseIQ: ") + pipeline.MAX_MESSAGE_CHARS
