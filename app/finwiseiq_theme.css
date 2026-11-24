@@ -49,8 +49,33 @@ body { background: #081429 !important; }
   color: var(--fw-muted);
 }
 #fw-chatbox .message { animation:fw-rise .32s both; }
-#fw-chatbox .message.bot, #fw-chatbox .message.assistant { border:1px solid rgba(77,160,162,.18); }
-#fw-chatbox .message.user { border:1px solid rgba(38,207,180,.2); }
+#fw-chatbox .message.bot {
+  --fw-message-text: var(--fw-ink);
+  background: #112b44;
+  border: 1px solid #31516a;
+  color: var(--fw-message-text);
+}
+#fw-chatbox .message.user {
+  --fw-message-text: #fff;
+  background: #086459;
+  border: 1px solid #398e82;
+  color: var(--fw-message-text);
+}
+#fw-chatbox :is(.message.bot, .message.user) .prose {
+  color: var(--fw-message-text);
+  overflow-wrap: anywhere;
+}
+#fw-chatbox :is(.message.bot, .message.user) .prose :where(p, li, strong, em, blockquote, h1, h2, h3, h4, h5, h6, th, td, pre, code) {
+  color: var(--fw-message-text);
+}
+#fw-chatbox :is(.message.bot, .message.user) .prose a {
+  color: #a2faed;
+  text-decoration: underline;
+}
+#fw-chatbox :is(.message.bot, .message.user) .prose :is(pre, code) {
+  background: #0b2137;
+  white-space: pre-wrap;
+}
 #fw-question { min-width: 0; }
 #fw-question textarea, #fw-question input { background:#0a2137 !important; color:#fff !important; border:1px solid rgba(149,190,209,.29) !important; border-radius:13px !important; padding:12px 14px !important; }
 #fw-question textarea::placeholder, #fw-question input::placeholder { color:#b0c2cd !important; opacity:1; }
