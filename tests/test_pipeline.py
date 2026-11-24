@@ -58,3 +58,40 @@ def test_format_context_numbers_each_match():
     assert text.startswith("[1] Q: Q1")
     assert "[2] Q: Q2" in text
     assert "Source: S2, p2" in text
+
+
+HISTORY = [
+    {"role": "user", "content": "What is murabahah?"},
+    {"role": "assistant", "content": "A cost-plus sale.\n\nSources:\n- BNM Murabahah PD"},
+]
+
+
+def test_follow_up_searches_again_with_previous_question(monkeypatch):
+    searched = []
+    row = {"question": "What is murabahah?", "answer": "A cost-plus sale.",
+           "source": "BNM Murabahah PD", "source_section": "para 1.3"}
+
+    def fake_retrieve(q):
+        searched.append(q)
+        return [] if q == "Tell me more" else [row]
+
+    monkeypatch.setattr(pipeline, "retrieve_context", fake_retrieve)
+    monkeypatch.setattr(model, "generate_answer", lambda q, c: "Fake answer.", raising=False)
+    out = pipeline.process_question("Tell me more", HISTORY)
+    # "Tell me more" alone found nothing, so it searched again with the previous question.
+    assert searched == ["Tell me more", "What is murabahah? Tell me more"]
+    assert out.startswith("Fake answer.")
+
+
+def test_off_topic_message_after_a_question_still_gets_fallback(monkeypatch):
+    searched = []
+
+    def fake_retrieve(q):
+        searched.append(q)
+        return []
+
+    monkeypatch.setattr(pipeline, "retrieve_context", fake_retrieve)
+    out = pipeline.process_question("Write me a nasi lemak recipe", HISTORY)
+    # Not a follow-up, so it is NOT searched again with the previous question.
+    assert searched == ["Write me a nasi lemak recipe"]
+    assert out == pipeline.FALLBACK_MESSAGE
