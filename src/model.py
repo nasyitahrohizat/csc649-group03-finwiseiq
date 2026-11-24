@@ -94,8 +94,8 @@ def generate_answer(question: str, context: str) -> str:
         raise GenerationError(
             "The AI service took too long to respond. Please try again in a moment."
         ) from None
-    except AuthenticationError as exc:
-        logger.error("OpenAI authentication failed: %s", _sanitize_error_text(str(exc)))
+    except AuthenticationError:
+        logger.error("OpenAI authentication failed.")
         raise GenerationError(
             "The AI service is currently unavailable due to an authentication issue."
         ) from None
