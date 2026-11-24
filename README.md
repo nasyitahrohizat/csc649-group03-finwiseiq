@@ -116,7 +116,8 @@ FinWiseIQ will **not**:
 | Source-aware responses: each answer lists the source documents and sections used                  | Optional                                    | `src/pipeline.py`                                     | Implemented                                              |
 | Friendly error messages for empty input, API failures and timeouts (no raw errors or keys shown)  | Robustness                                  | `src/model.py`, `src/pipeline.py`, `app/interface.py` | Implemented                                              |
 | Automated tests run on every pull request (GitHub Actions)                                        | Quality                                     | `.github/workflows/tests.yml`                         | Implemented                                              |
-| Conversation memory (using earlier turns as context)                                              | Optional                                    | –                                                     | Not implemented; each question is answered independently |
+| Conversation memory: follow-ups such as "tell me more" or "terangkan lagi" reuse the last answered topic | Optional                         | `src/pipeline.py`                                     | Implemented (last 6 messages, rule-based)                |
+| Friendly small-talk replies ("oh ok", "hmm", "thanks", "bye") in English or Malay, matching the conversation language | Usability            | `src/pipeline.py`                                     | Implemented                                              |
 
 ---
 
@@ -209,13 +210,20 @@ flowchart TD
 
 Steps 1–6, 8 and 9 follow the lecturer's baseline example. Step 7 and the source list are the team's additions.
 
+### Conversation memory and small talk (KAN-47)
+
+Before retrieval, `process_question()` handles two extra cases:
+
+- **Small talk.** Messages such as "oh ok", "hmm", "thanks", "terima kasih" or "bye" get a friendly reply from `small_talk_reply()` without retrieval or an OpenAI call. Thinking sounds of any length ("hmmm", "umm") are recognised with a regular expression, also when mixed with small talk ("hm ok"). Words used in both languages ("ok", "hmm", "tq", "bye") are answered in Malay if the user's last real message contained common Malay words (`conversation_is_malay()`, a rule-based check).
+- **Follow-ups.** The topic is the user's last question that received a real answer (a reply with sources), so small talk and refused questions never replace it. A pure follow-up ("tell me more", "terangkan lagi") or a question that refers back ("How is it different from ijarah?") is searched together with that topic. Only then are the last six messages (each cut to 500 characters, sources removed) sent to OpenAI under "CONVERSATION SO FAR". New questions are sent on their own.
+
 ### Function contract
 
 | Function                             | File               | Input                            | Output                                                                                                                                                      |
 | ------------------------------------ | ------------------ | -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `retrieve_context(question)`         | `src/retrieval.py` | question text                    | list of up to 3 dicts (`id`, `category`, `question`, `answer`, `source`, `source_section`, `score`), best first; empty list if nothing passes the threshold |
 | `generate_answer(question, context)` | `src/model.py`     | question text, formatted context | answer text; raises `GenerationError` (safe message) on API failure, `ValueError` on empty input                                                            |
-| `process_question(question)`         | `src/pipeline.py`  | question text                    | always returns text (answer with sources, fallback, or error message); never raises                                                                         |
+| `process_question(question, history=None)` | `src/pipeline.py`  | question text, optional chat history | always returns text (small-talk reply, answer with sources, fallback, or error message); never raises                                              |
 
 ### Relevance threshold and refusal
 
@@ -471,15 +479,15 @@ csc649-group03-finwiseiq/
 
 ### Automated tests
 
-The test suite has **68 tests** and runs without an API key. The tests mock OpenAI calls and backend calls where needed.
+The test suite has **106 tests** and runs without an API key. The tests mock OpenAI calls and backend calls where needed.
 
 | File                      | Tests | What is checked                                                                                                                                                     |
 | ------------------------- | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `tests/test_retrieval.py` | 5     | Dataset loads with all columns; a missing column raises an error; relevant questions return sorted matches; off-topic and empty questions return nothing            |
-| `tests/test_model.py`     | 12    | Context-grounded generation; input validation; timeout, authentication, rate-limit, connection and other API errors; key redaction in logs; empty responses         |
-| `tests/test_pipeline.py`  | 14    | Input validation, retrieval and citations, off-topic fallback, API error handling, follow-up retrieval, and history limits |
+| `tests/test_model.py`     | 15    | Context-grounded generation; input validation; timeout, authentication, rate-limit, connection and other API errors; key redaction in logs; empty responses; Malay queries and refusals |
+| `tests/test_pipeline.py`  | 41    | Input validation, retrieval and citations, off-topic fallback, API error handling, follow-up retrieval, topic kept after small talk, small-talk replies in English and Malay, and history limits |
 | `tests/test_interface.py` | 13    | Input validation, response display, Gradio history forwarding, local greetings, backend exceptions, and invalid replies |
-| `tests/test_finwiseiq_redesign.py` | 24 | Branded UI response rendering, local greetings, repeated blank-input handling, Clear, suggested questions, assets, mobile layout, and reduced motion |
+| `tests/test_finwiseiq_redesign.py` | 32 | Branded UI response rendering, question shown while the answer loads, welcome message, local greetings, repeated blank-input handling, Clear, suggested questions, assets, mobile layout, and reduced motion |
 
 Run them from the project folder.
 
@@ -531,7 +539,7 @@ The two out-of-scope questions that pass the threshold (T19 Shariah certificatio
 
 **Gradio interface** (24 November 2026, KAN-35): through the running app, the Murabahah and customer due diligence questions returned answers with sources, off-topic questions returned the fallback, and empty input returned "Please type a question."
 
-**Usability testing** (24 November 2026, KAN-39, [docs/KAN-39_Gradio_Usability_Test_Report.md](docs/KAN-39_Gradio_Usability_Test_Report.md)): 12 manual scenarios on the branded interface with the real backend (U01–U12: answers with sources, Send button and Enter key, suggested questions, empty input, out-of-scope refusal, chat history, Clear, API error, 390 px mobile width, keyboard and reduced motion). All 12 passed; three had minor notes: low contrast in the welcome text, limited mobile input spacing, and follow-up questions not using earlier chat context. Screenshots are in `docs/screenshots/`. The time-on-task values in the report are estimates, not stopwatch measurements.
+**Usability testing** (24 November 2026, KAN-39, [docs/KAN-39_Gradio_Usability_Test_Report.md](docs/KAN-39_Gradio_Usability_Test_Report.md)): 12 manual scenarios on the branded interface with the real backend (U01–U12: answers with sources, Send button and Enter key, suggested questions, empty input, out-of-scope refusal, chat history, Clear, API error, 390 px mobile width, keyboard and reduced motion). All 12 passed; three had minor notes: low contrast in the welcome text, limited mobile input spacing, and follow-up questions not using earlier chat context (follow-ups were later added in KAN-47). Screenshots are in `docs/screenshots/`. The time-on-task values in the report are estimates, not stopwatch measurements.
 
 The later frontend polish improved contrast, mobile spacing, and keyboard focus. [Frontend polish verification](docs/frontend_test_results.md#frontend-ui-polish-verification)
 
@@ -606,7 +614,7 @@ git log --all --format="%ad  %an  %s" --date=short
 - **A single threshold is a trade-off.** 0.45 was calibrated on 20 test questions. It may wrongly refuse some valid questions and accept some unrelated ones, and should be re-calibrated whenever the dataset changes significantly.
 - **Questions are matched, not answers.** Only dataset _questions_ are embedded. A user question that matches the content of an answer but not the wording of its question may be missed.
 - **Short answers can skip details.** For short questions the model sometimes leaves out a relevant fact that is in the retrieved context (T13, T14 in the end-to-end evaluation).
-- **Limited conversation memory.** Some follow-ups reuse an earlier topic. When the pipeline uses history, the OpenAI prompt can include up to six previous messages. Ambiguous wording, intervening greetings, or refused questions can lead to a fallback or the wrong topic.
+- **Rule-based conversation memory and small talk.** Follow-ups and small talk are detected with word lists, not by understanding the message. Unusual follow-up wording can get the fallback, and a Malay message containing none of the listed Malay words is treated as English for small-talk replies. When history is used, only the last six messages are sent to OpenAI.
 - **LLM hallucination.** Even with context injection and a strict system prompt, the LLM can still add unsupported details or misread the context.
 - **Outdated sources.** Regulations and standards are revised over time. Answers can become outdated if the dataset is not reviewed against newer versions.
 - **External API dependence and cost.** The chatbot depends on the OpenAI API being available. Rate limits, quotas, latency, usage charges and model deprecations are outside the team's control.
