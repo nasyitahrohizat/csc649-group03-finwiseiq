@@ -273,3 +273,28 @@ def test_system_prompt_includes_generation_improvement_rules():
     assert "key facts" in prompt_lower
     assert "in the context provided" in prompt_lower
     assert "do not repeat or cite" in prompt_lower
+
+
+@patch("src.model.get_model_name", return_value="gpt-4o-mini")
+@patch("src.model.get_openai_client")
+def test_generate_answer_malay_query(mock_get_client, _mock_model):
+    mock_client = MagicMock()
+    mock_client.chat.completions.create.return_value = _make_mock_response(
+        "Murabahah ialah kontrak jual beli kos tambah untung di mana bank membeli aset "
+        "dan menjualnya kepada pelanggan pada harga kos asal ditambah keuntungan yang dipersetujui."
+    )
+    mock_get_client.return_value = mock_client
+    ans = generate_answer("Apakah maksud murabahah dalam perbankan Islam?", SAMPLE_CSV_CONTEXT)
+    assert "murabahah" in ans.lower() and "context" not in ans.lower()
+
+
+@patch("src.model.get_model_name", return_value="gpt-4o-mini")
+@patch("src.model.get_openai_client")
+def test_generate_answer_malay_insufficient_context(mock_get_client, _mock_model):
+    mock_client = MagicMock()
+    mock_client.chat.completions.create.return_value = _make_mock_response(
+        "Maaf, maklumat yang diminta tidak terdapat dalam pangkalan pengetahuan FinWiseIQ."
+    )
+    mock_get_client.return_value = mock_client
+    ans = generate_answer("Apakah kadar cukai pendapatan semasa di Malaysia?", SAMPLE_CSV_CONTEXT)
+    assert "pangkalan pengetahuan" in ans.lower()
