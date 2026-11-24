@@ -349,14 +349,14 @@ notepad .env
 python -m src.model
 
 # 8. Run the application
-python -m app.interface
+python -m app.finwiseiq_redesign
 ```
 
 Open the local URL that Gradio prints (normally `http://127.0.0.1:7860`) in a browser. The first question takes a few seconds longer because the embedding model is loaded. Stop the app with **Ctrl+C**.
 
 Notes:
 
-- Run the app with `python -m app.interface` from the project folder (not `python app/interface.py`), so Python can find the `src` package.
+- Run the command from the project folder. If PowerShell blocks virtual environment activation, run `.\.venv\Scripts\python.exe -m app.finwiseiq_redesign` directly.
 - If you use Command Prompt (`cmd.exe`) instead of PowerShell, activate the environment with `.venv\Scripts\activate.bat` and copy the file with `copy .env.example .env`.
 - On the first run, Hugging Face may print _"You are sending unauthenticated requests to the HF Hub"_. This is only a warning about download rate limits and can be ignored.
 
@@ -412,7 +412,9 @@ csc649-group03-finwiseiq/
 ├── .github/workflows/
 │   └── tests.yml                  # Runs pytest on every pull request to main
 ├── app/
-│   └── interface.py               # Gradio chat interface (entry point: python -m app.interface)
+│   ├── finwiseiq_redesign.py      # Branded Gradio entry point
+│   ├── finwiseiq_theme.css        # Chat styles and responsive layout
+│   └── interface.py               # Original interface and shared response handler
 ├── data/
 │   ├── finwiseiq_dataset.csv      # Knowledge base: 50 Q&A pairs with sources
 │   ├── sample.csv                 # Early placeholder rows used during setup (not used by the app)
@@ -421,7 +423,7 @@ csc649-group03-finwiseiq/
 │   ├── source_registry.md         # All 15 source documents with links
 │   ├── retrieval_evaluation.md    # Retrieval accuracy and threshold calibration (KAN-36)
 │   ├── generation_test_results.md # OpenAI generation tests (KAN-24)
-│   ├── frontend_test_results.md   # Gradio interface tests (KAN-33)
+│   ├── frontend_test_results.md   # Gradio interface tests and UI polish verification
 │   ├── pipeline_test_results.md   # End-to-end pipeline test with the real API (KAN-34)
 │   ├── end_to_end_answers.md      # Raw answers for all 20 test questions (KAN-40)
 │   ├── end_to_end_evaluation.md   # Five-dimension evaluation table (KAN-40)
