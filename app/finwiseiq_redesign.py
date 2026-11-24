@@ -30,6 +30,19 @@ ERROR_MESSAGE = (
     "Please try again in a moment."
 )
 EMPTY_MESSAGE = "Please type a question about Islamic finance or Malaysian financial compliance."
+ENGLISH_GREETING = "Hello! How can I help you with Islamic finance or Malaysian financial compliance?"
+MALAY_GREETING = "Hai! Ada soalan tentang kewangan Islam atau pematuhan kewangan di Malaysia?"
+SALAM_GREETING = (
+    "Waalaikumsalam! Ada soalan tentang kewangan Islam atau pematuhan kewangan di Malaysia?"
+)
+GREETING_RESPONSES = {
+    "hi": ENGLISH_GREETING,
+    "hello": ENGLISH_GREETING,
+    "hai": MALAY_GREETING,
+    "salam": SALAM_GREETING,
+    "assalamualaikum": SALAM_GREETING,
+    "assalamu alaikum": SALAM_GREETING,
+}
 
 
 def _real_responder() -> Callable:
@@ -49,16 +62,16 @@ def process_message(message: str, history: list[dict] | None, responder: Callabl
     if not question:
         return safe_history + [{"role": "assistant", "content": EMPTY_MESSAGE}], ""
 
-    # Use the prior dialogue as the existing backend handler expects.
-    # For the PR #18 implementation, respond() returns the final answer string.
-    try:
-        answer = responder(question, safe_history)
-        if not isinstance(answer, str):
-            # Defensive support for handlers returning a simple object with text.
-            answer = str(answer) if answer is not None else ERROR_MESSAGE
-    except Exception:
-        # No traceback / API key / sensitive information displayed to users.
-        answer = ERROR_MESSAGE
+    greeting = " ".join(question.casefold().strip("!?., ").split())
+    answer = GREETING_RESPONSES.get(greeting)
+    if answer is None:
+        try:
+            answer = responder(question, safe_history)
+            if not isinstance(answer, str):
+                answer = str(answer) if answer is not None else ERROR_MESSAGE
+        except Exception:
+            # Keep API keys and technical details out of user-facing errors.
+            answer = ERROR_MESSAGE
 
     return (
         safe_history
