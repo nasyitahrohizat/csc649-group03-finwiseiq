@@ -4,7 +4,7 @@ process_question() is the single entry point the Gradio app calls.
 It never raises: it always returns text for the user.
 """
 import logging
-
+import re
 from src import model
 from src.retrieval import retrieve_context
 
@@ -43,19 +43,109 @@ def format_sources(results: list[dict]) -> str:
             sources.append(s)
     return "\n".join(f"- {s}" for s in sources)
 
+MAX_HISTORY_MESSAGES = 6  # the last 3 questions and 3 answers
+MAX_MESSAGE_CHARS = 500   # keep each earlier message short
 
-def process_question(question: str) -> str:
-    """Answer a user question. Always returns text, never raises."""
+# Words that point back to something said earlier ("is IT halal?", "apa TU?").
+REFERENCE_WORDS = {"it", "its", "this", "that", "these", "those", "they", "them", "tu", "ni"}
+
+# A pure follow-up uses ONLY these words: it asks for more about the earlier
+# topic and brings no new topic of its own (English and Malay).
+FOLLOW_UP_WORDS = REFERENCE_WORDS | {
+    "tell", "me", "more", "again", "give", "an", "a", "another", "example", "examples",
+    "can", "could", "you", "please", "explain", "elaborate", "detail", "details",
+    "why", "how", "what", "does", "do", "is", "mean", "means", "and", "so", "ok",
+    "okay", "also", "else", "further", "simpler", "simply", "in", "words", "other",
+    "about", "i", "don", "t", "understand",
+    "lagi", "contoh", "terangkan", "jelaskan", "boleh", "bagi", "apa", "maksud",
+    "kenapa", "macam", "mana", "sikit", "lebih", "lanjut", "tak", "faham",
+}
+
+
+def _message_text(content) -> str:
+    """Gradio may store a message as plain text or as a list of text parts."""
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        return " ".join(
+            part.get("text", "") for part in content if isinstance(part, dict)
+        )
+    return ""
+
+
+def _words(text: str) -> list[str]:
+    """Lower-case words only, e.g. "Tell me more!" -> ["tell", "me", "more"]."""
+    return re.findall(r"[a-z]+", text.lower())
+
+
+def is_follow_up(question: str) -> bool:
+    """True if the message only asks for more about the earlier topic.
+
+    "Tell me more" or "terangkan lagi" -> True.
+    "How do I cook nasi lemak?" -> False ("cook", "nasi", "lemak" are a new topic).
+    """
+    words = _words(question)
+    return bool(words) and all(w in FOLLOW_UP_WORDS for w in words)
+
+
+def refers_back(question: str) -> bool:
+    """True if the message points back with a word such as "it" or "that"."""
+    return bool(set(_words(question)) & REFERENCE_WORDS)
+
+
+def last_topic_question(history: list[dict] | None) -> str:
+    """The user's last real question, skipping follow-ups such as "tell me more"."""
+    for msg in reversed(history or []):
+        if isinstance(msg, dict) and msg.get("role") == "user":
+            text = _message_text(msg.get("content")).strip()
+            if text and not is_follow_up(text):
+                return text
+    return ""
+
+
+def format_history(history: list[dict] | None) -> str:
+    """Turn the last few chat messages into short text for OpenAI (sources removed)."""
+    lines = []
+    for msg in (history or [])[-MAX_HISTORY_MESSAGES:]:
+        if not isinstance(msg, dict) or msg.get("role") not in ("user", "assistant"):
+            continue
+        text = _message_text(msg.get("content")).split("\n\nSources:")[0].strip()
+        if text:
+            speaker = "User" if msg["role"] == "user" else "FinWiseIQ"
+            lines.append(f"{speaker}: {text[:MAX_MESSAGE_CHARS]}")
+    return "\n".join(lines)
+
+
+def process_question(question: str, history: list[dict] | None = None) -> str:
+    """Answer a user question, using earlier messages for follow-ups. Never raises."""
     if not question or not question.strip():
         return EMPTY_MESSAGE
+    question = question.strip()
 
     results = retrieve_context(question)
+    topic = last_topic_question(history)
+    uses_history = False
+    if topic and (is_follow_up(question) or (results and refers_back(question))):
+        # "Tell me more" has no topic of its own, and "How is it different
+        # from ijarah?" needs the earlier topic too, so search with both.
+        combined = retrieve_context(f"{topic} {question}")
+        if combined:
+            results, uses_history = combined, True
     if not results:
         return FALLBACK_MESSAGE  # off-topic: OpenAI is NOT called
 
     context = format_context(results)
+    if uses_history:
+        # Only follow-ups get the earlier conversation; new questions are sent alone.
+        question_for_model = (
+            f"CONVERSATION SO FAR:\n{format_history(history)}\n\n"
+            f"CURRENT QUESTION:\n{question}"
+        )
+    else:
+        question_for_model = question
+
     try:
-        answer = model.generate_answer(question.strip(), context)
+        answer = model.generate_answer(question_for_model, context)
     except Exception as exc:  # API failure, timeout, missing key, etc.
         logger.warning("Answer generation failed: %s", type(exc).__name__)
         return ERROR_MESSAGE
