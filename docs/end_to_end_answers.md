@@ -15,7 +15,7 @@ Raw answers from the real pipeline. The judged five-dimension table is in `docs/
 | T02 | in_scope | Is ijarah the same as murabahah? | IFC-008 | IFC-008 (0.933), IFC-007 (0.758), IFC-001 (0.561) | Rank 1 | Generated answer |
 | T03 | in_scope | How does tawarruq give me cash? | IFC-005 | IFC-005 (0.670), IFC-006 (0.577) | Rank 1 | Generated answer |
 | T04 | in_scope | What does a bank's Shariah committee do? | IFF-006 | IFF-006 (0.829), IFF-009 (0.775), IFF-005 (0.766) | Rank 1 | Generated answer |
-| T05 | in_scope | Why is interest not allowed in Islamic banking? | IFF-002 | IFF-005 (0.652), IFF-002 (0.649), IFF-009 (0.579) | Top 3 | Generated answer |
+| T05 | in_scope | Why is interest not allowed in Islamic banking? | IFF-002 | IFF-011 (0.699), IFF-005 (0.652), IFF-002 (0.649) | Top 3 | Generated answer |
 | T06 | in_scope | What is AML/CFT? | AML-001 | AML-001 (0.840), AML-005 (0.667), AML-004 (0.628) | Rank 1 | Generated answer |
 | T07 | in_scope | When does a bank have to file an STR? | AML-006 | KYC-002 (0.553), AML-006 (0.495), AML-007 (0.477) | Top 3 | Generated answer |
 | T08 | in_scope | If I deposit RM30,000 cash, is it reported? | AML-007 | AML-007 (0.523) | Rank 1 | Generated answer |
@@ -42,7 +42,7 @@ Raw answers from the real pipeline. The judged five-dimension table is in `docs/
 
 **FinWiseIQ answer:**
 
-> Murabahah is a sale. The bank buys an asset, then sells it to you at its original cost plus an agreed profit. The bank discloses both amounts, and you usually pay the total price in instalments.
+> Murabahah is a sale. The bank buys an asset, then sells it to the customer for the original cost plus an agreed profit. The bank tells the customer both amounts, and the customer usually pays the total price in instalments.
 >
 > Sources:
 > - BNM Policy Document: Murabahah (BNM/RH/STD 028-4, 23 Dec 2013); BNM Policy Document: Ijarah (28 Jun 2018) (Murabahah para 1.3-1.5; Ijarah para 8.1(a), 22.1-22.3)
@@ -57,7 +57,7 @@ Raw answers from the real pipeline. The judged five-dimension table is in `docs/
 
 **FinWiseIQ answer:**
 
-> No. **Ijarah** is a lease: the bank retains ownership of the asset, and the customer pays rent to use it. **Murabahah** is a sale: the bank sells the asset to the customer at its disclosed cost plus a profit, usually payable in instalments. In ijarah muntahiyah bittamlik, ownership may later be transferred to the customer.
+> No. **Ijarah** is a lease: the bank retains ownership of the asset and the customer pays rent to use it. **Murabahah** is a sale: the bank sells the asset to the customer at its disclosed cost plus profit, typically with payment in instalments.
 >
 > Sources:
 > - BNM Policy Document: Murabahah (BNM/RH/STD 028-4, 23 Dec 2013); BNM Policy Document: Ijarah (28 Jun 2018) (Murabahah para 1.3-1.5; Ijarah para 8.1(a), 22.1-22.3)
@@ -72,12 +72,7 @@ Raw answers from the real pipeline. The judged five-dimension table is in `docs/
 
 **FinWiseIQ answer:**
 
-> Tawarruq gives you cash through two separate sales:
->
-> 1. An asset is sold to you on deferred payment, so you pay its price later.
-> 2. You then sell that same asset to a third party for cash.
->
-> You receive cash from the second sale and owe the deferred price from the first sale.
+> In tawarruq, the asset is first sold to you on deferred payment. You then sell that same asset to a third party for cash. You receive the cash from the second sale and pay the deferred price later. (BNM Policy Document: Tawarruq, 28 Dec 2018, paras. 9.1 and 10.3)
 >
 > Sources:
 > - BNM Policy Document: Tawarruq (28 Dec 2018) (Para 9.1, 10.3)
@@ -91,7 +86,7 @@ Raw answers from the real pipeline. The judged five-dimension table is in `docs/
 
 **FinWiseIQ answer:**
 
-> A bank’s Shariah committee gives objective advice on applying Shariah Advisory Council rulings and refers questions to the SAC when needed. It also affirms findings of Shariah non-compliance, endorses how those issues are addressed, and must promptly inform the board of matters that may affect the bank’s safety and soundness.
+> A bank’s Shariah committee gives objective advice on applying Shariah Advisory Council rulings and refers questions to the Council when needed. It also affirms findings of Shariah non-compliance, endorses how they are addressed, and must promptly inform the board of issues that may affect the bank’s safety and soundness.
 >
 > Sources:
 > - BNM Policy Document: Shariah Governance (BNM/RH/PD 028-100, 20 Sep 2019) (Part C, para 10.2 and 10.5)
@@ -102,16 +97,16 @@ Raw answers from the real pipeline. The judged five-dimension table is in `docs/
 
 **Expected key points:** Riba (interest) is prohibited; returns come from trade, lease or partnership
 
-**Retrieved:** IFF-005 (0.652), IFF-002 (0.649), IFF-009 (0.579)
+**Retrieved:** IFF-011 (0.699), IFF-005 (0.652), IFF-002 (0.649)
 
 **FinWiseIQ answer:**
 
-> In the provided context, **riba refers to interest and is prohibited in Islamic finance**. BNM’s Shariah Advisory Council treats an extra charge on a debt beyond the actual cost as riba. Islamic banks therefore structure returns through contracts such as trade (murabahah), leasing (ijarah), or partnerships (musyarakah and mudarabah), rather than charging interest on a loan.
+> Islamic banking prohibits interest because it is treated as **riba**. In the context provided, the BNM Shariah Advisory Council treats an extra charge on a debt beyond its actual cost as riba. Islamic banks instead earn returns through Shariah contracts such as trade (murabahah), leasing (ijarah), and profit-sharing or partnership (mudarabah and musyarakah).
 >
 > Sources:
+> - BNM website: Islamic Banking & Takaful (Malaysian Financial Sector page); Islamic Financial Services Act 2013 (Act 759) (BNM page: prohibited activities and Islamic finance concepts; IFSA ss.28, 30)
 > - BNM Policy Document: Shariah Governance (BNM/RH/PD 028-100, 20 Sep 2019) (Part A, para 1.2-1.4)
 > - BNM website: Islamic Banking & Takaful (Malaysian Financial Sector page); BNM Shariah Resolutions in Islamic Finance (2nd ed., 2010) (BNM page: prohibited activities; Shariah Resolutions items 107 (p.173), 123 (p.196))
-> - BNM Policy Document: Shariah Governance (BNM/RH/PD 028-100, 20 Sep 2019) (Part E, para 17.2, 18.2, 19.2)
 
 ### T06 (in_scope): What is AML/CFT?
 
@@ -121,7 +116,7 @@ Raw answers from the real pipeline. The judged five-dimension table is in `docs/
 
 **FinWiseIQ answer:**
 
-> AML/CFT stands for **Anti-Money Laundering and Countering the Financing of Terrorism**. It refers to measures financial institutions take to help prevent their services from being used to hide criminal money or fund terrorism.
+> AML/CFT stands for **Anti-Money Laundering and Countering the Financing of Terrorism**. It refers to measures financial institutions take to prevent their services from being used to hide criminal money or finance terrorism.
 >
 > Sources:
 > - BNM Policy Document: AML/CFT/CPF and TFS for Financial Institutions (BNM/RH/PD 030-14, 5 Feb 2024) (Part A, para 1.1-1.5)
@@ -136,7 +131,7 @@ Raw answers from the real pipeline. The judged five-dimension table is in `docs/
 
 **FinWiseIQ answer:**
 
-> A bank must file an STR when it suspects a transaction is linked to money laundering, terrorism financing, or proliferation financing. This applies regardless of the amount and includes attempted transactions. The STR must be submitted to BNM’s FIED by the next working day after the Compliance Officer establishes the suspicion.
+> A bank must file an STR with BNM’s FIED when it suspects a transaction is linked to money laundering, terrorism financing or proliferation financing. This applies regardless of the amount and includes attempted transactions. The report must be submitted by the next working day after the Compliance Officer establishes the suspicion.
 >
 > Sources:
 > - BNM Policy Document: AML/CFT/CPF and TFS for Financial Institutions (BNM/RH/PD 030-14, 5 Feb 2024) (Para 14A.1(a)-(h))
@@ -151,7 +146,7 @@ Raw answers from the real pipeline. The judged five-dimension table is in `docs/
 
 **FinWiseIQ answer:**
 
-> Yes. A RM30,000 cash deposit meets the RM25,000-or-more daily threshold for a Cash Threshold Report (CTR). The Compliance Officer submits the report to BNM’s FIED within five working days.
+> Yes. A RM30,000 cash deposit meets the RM25,000 threshold, provided it is counted in the same account on the same day. The Compliance Officer must submit the CTR to BNM’s FIED within five working days.
 >
 > Sources:
 > - BNM Policy Document: AML/CFT/CPF and TFS for Financial Institutions (BNM/RH/PD 030-14, 5 Feb 2024) (Para 21.3.1-21.3.2, 21.4.1-21.4.3)
@@ -164,7 +159,7 @@ Raw answers from the real pipeline. The judged five-dimension table is in `docs/
 
 **FinWiseIQ answer:**
 
-> Customer Due Diligence (CDD) is the process of knowing your customer. It includes identifying and verifying the customer and anyone acting on their behalf using reliable sources, identifying the beneficial owner, and understanding the purpose of the business relationship.
+> Customer Due Diligence (CDD) is the process of knowing your customer. It involves identifying and verifying the customer and anyone acting on their behalf using reliable sources, identifying the beneficial owner, and understanding the purpose of the business relationship.
 >
 > Sources:
 > - BNM Policy Document: AML/CFT/CPF and TFS for Financial Institutions (BNM/RH/PD 030-14, 5 Feb 2024) (Para 14A.3(a)-(d))
@@ -179,7 +174,7 @@ Raw answers from the real pipeline. The judged five-dimension table is in `docs/
 
 **FinWiseIQ answer:**
 
-> A Politically Exposed Person (PEP) is someone who holds or has held a prominent public function, such as a senior politician, government official, or senior executive of an international organisation. The definition includes foreign, domestic, and international organisation PEPs, as well as their family members and close associates.
+> A Politically Exposed Person (PEP) is someone who holds or has held a prominent public function, such as a senior politician, government official, or senior executive of an international organisation. The definition also includes foreign, domestic, and international-organisation PEPs, as well as their family members and close associates.
 >
 > Sources:
 > - BNM Policy Document: AML/CFT/CPF and TFS for Financial Institutions (BNM/RH/PD 030-14, 5 Feb 2024) (Para 6.2)
@@ -193,7 +188,9 @@ Raw answers from the real pipeline. The judged five-dimension table is in `docs/
 
 **FinWiseIQ answer:**
 
-> Banks must keep KYC records, including customer due diligence documents, for at least six years after the transaction or the end of the business relationship—whichever is relevant. They must keep them longer if the records relate to an ongoing investigation or prosecution.
+> Banks must keep KYC records, including customer due diligence documents, for **at least six years** after the transaction or the end of the business relationship. They must keep them longer if they relate to an ongoing investigation or prosecution.
+>
+> *Source: BNM Policy Document: AML/CFT/CPF and TFS for Financial Institutions, paragraphs 24.1 and 24.3–24.4.*
 >
 > Sources:
 > - BNM Policy Document: AML/CFT/CPF and TFS for Financial Institutions (BNM/RH/PD 030-14, 5 Feb 2024) (Para 24.1, 24.3-24.4)
@@ -207,7 +204,7 @@ Raw answers from the real pipeline. The judged five-dimension table is in `docs/
 
 **FinWiseIQ answer:**
 
-> Bank Negara Malaysia (BNM) is Malaysia’s central bank. Its main objectives are to promote monetary and financial stability. It also regulates and supervises banks, Islamic banks, insurers, and takaful operators, and serves as the competent authority for AML/CFT in the financial sector.
+> Bank Negara Malaysia (BNM) is Malaysia’s central bank. Its main objectives are to promote monetary and financial stability. It regulates and supervises banks, Islamic banks, insurers and takaful operators, and is the competent authority for AML/CFT in the financial sector. (Central Bank of Malaysia Act 2009, section 5)
 >
 > Sources:
 > - Central Bank of Malaysia Act 2009 (Act 701) (Section 5)
@@ -222,10 +219,10 @@ Raw answers from the real pipeline. The judged five-dimension table is in `docs/
 
 **FinWiseIQ answer:**
 
-> Yes. For a Shariah question in a court case concerning Islamic financial business, a ruling made by the SAC on a reference is binding on the court that referred the question. The court may also consider published SAC rulings.
+> Yes. If a court refers a Shariah question about Islamic financial business to the SAC, the SAC’s ruling is binding on that court. The court remains responsible for deciding the case itself.
 >
 > Sources:
-> - Central Bank of Malaysia Act 2009 (Act 701) (Sections 56, 57)
+> - Central Bank of Malaysia Act 2009 (Act 701); Kunhibava, S. & Yeo, V.L.A. (2019). The Constitutionality of sections 56 and 57 of the Central Bank of Malaysia Act 2009: JRI Resources Sdn Bhd v Kuwait Finance House. Journal of Malaysian and Comparative Law, 46(2), 39-50 (CBA ss.56, 57; JMCL article abstract and Part III)
 
 ### T14 (in_scope): What is the FATF?
 
@@ -235,7 +232,7 @@ Raw answers from the real pipeline. The judged five-dimension table is in `docs/
 
 **FinWiseIQ answer:**
 
-> The Financial Action Task Force (FATF) sets international standards for anti-money laundering and countering the financing of terrorism (AML/CFT), known as the 40 FATF Recommendations. It also assesses countries through mutual evaluations.
+> The Financial Action Task Force (FATF) sets international anti-money laundering and counter-financing of terrorism (AML/CFT) standards, known as the 40 FATF Recommendations, and assesses countries through mutual evaluations.
 >
 > Sources:
 > - FATF: Mutual Evaluation Report of Malaysia 2025 (Dec 2025); FATF Malaysia country page (MER 2025 p.4 (Key Findings a); FATF Malaysia country page (member since 2016))
@@ -248,9 +245,7 @@ Raw answers from the real pipeline. The judged five-dimension table is in `docs/
 
 **FinWiseIQ answer:**
 
-> When an Islamic bank identifies a Shariah non-compliance event, senior management must report it promptly to the board and Shariah committee. The committee affirms the finding and endorses rectification measures. The bank must also notify Bank Negara Malaysia (BNM) and submit a rectification plan as required under section 28(3) of IFSA.
->
-> *Source: BNM Policy Document on Shariah Governance, paragraphs 10.2(d)–(e), 10.8 and 15.1(f); IFSA 2013, section 28(3).*
+> When an Islamic bank identifies a Shariah non-compliance event, senior management must promptly report it to the board and Shariah committee. The Shariah committee confirms the finding and endorses rectification measures. The bank must also notify Bank Negara Malaysia (BNM) and submit a rectification plan as required under section 28(3) of IFSA.
 >
 > Sources:
 > - BNM Policy Document: Shariah Governance (BNM/RH/PD 028-100, 20 Sep 2019); Islamic Financial Services Act 2013 (Act 759) (PD para 10.2(d)-(e), 10.8, 15.1(f); IFSA s.28(3))
@@ -295,9 +290,9 @@ Raw answers from the real pipeline. The judged five-dimension table is in `docs/
 
 **FinWiseIQ answer:**
 
-> I can’t officially determine whether your company’s specific product is Shariah-compliant. In general, a Shariah-compliant product avoids riba, maysir and excessive gharar, and is approved through the institution’s Shariah governance process.
+> I can’t determine or officially certify whether your company’s specific product is Shariah-compliant. Generally, a Shariah-compliant product avoids riba, maysir and excessive gharar, and is approved through the institution’s Shariah governance process.
 >
-> For a formal determination, consult your company’s Shariah committee or a qualified Shariah scholar.
+> For a formal determination, consult your institution’s Shariah committee or a qualified Shariah scholar.
 >
 > Sources:
 > - BNM website: Islamic Banking & Takaful (Malaysian Financial Sector page); BNM Shariah Resolutions in Islamic Finance (2nd ed., 2010); BNM Policy Document: Shariah Governance (BNM/RH/PD 028-100, 20 Sep 2019) (BNM page: prohibited activities; Shariah Resolutions item 132 (p.207); Shariah Governance PD para 1.2-1.4)
@@ -312,7 +307,7 @@ Raw answers from the real pipeline. The judged five-dimension table is in `docs/
 
 **FinWiseIQ answer:**
 
-> I can’t answer this from FinWiseIQ’s verified knowledge base: the provided context covers Malaysian AML requirements, not the United States. My role is educational and limited to information supported by the available context. For U.S. requirements, consult the relevant U.S. regulatory authority or qualified legal counsel.
+> I can’t provide an explanation of U.S. AML rules: FinWiseIQ’s verified knowledge base here covers Malaysian AML requirements, not U.S. regulations. For authoritative information, consult the relevant U.S. regulator or a qualified legal professional.
 >
 > Sources:
 > - Anti-Money Laundering, Anti-Terrorism Financing and Proceeds of Unlawful Activities Act 2001 (Act 613) (Sections 4, 13, 14, 14A; First Schedule)

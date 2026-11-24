@@ -104,13 +104,13 @@ FinWiseIQ will **not**:
 | Feature                                                                                           | Lecturer requirement                        | Where                                                 | Status                                                   |
 | ------------------------------------------------------------------------------------------------- | ------------------------------------------- | ----------------------------------------------------- | -------------------------------------------------------- |
 | Domain-specific chatbot for Islamic finance and Malaysian financial compliance                    | Unique domain per group                     | Whole project                                         | Implemented                                              |
-| Custom CSV knowledge dataset: **50** Q&A pairs, 10 per category, each with source and section     | Custom CSV dataset (≥ 30 pairs)             | `data/finwiseiq_dataset.csv`                          | Implemented                                              |
+| Custom CSV knowledge dataset: **55** Q&A pairs in 5 categories, each with source and section         | Custom CSV dataset (≥ 30 pairs)             | `data/finwiseiq_dataset.csv`                          | Implemented                                              |
 | OpenAI API integration (official `openai` Python SDK, called only from the backend)               | LLM/API integration                         | `src/model.py`                                        | Implemented                                              |
 | Custom system prompt defining scope, tone and refusal rules                                       | Custom system prompt                        | `src/prompt.py`                                       | Implemented                                              |
 | Semantic search with Sentence Transformers (`all-MiniLM-L6-v2`) and cosine similarity             | Custom knowledge retrieval (RAG)            | `src/retrieval.py`                                    | Implemented                                              |
 | Retrieval of the top-k most relevant Q&A pairs (k = 3)                                            | Custom knowledge retrieval (RAG)            | `src/retrieval.py`                                    | Implemented                                              |
 | Injection of retrieved Q&A pairs into the LLM prompt                                              | Context injection                           | `src/pipeline.py`, `src/model.py`                     | Implemented                                              |
-| Gradio web interface                                                                              | Frontend (Gradio/Flask/Tkinter)             | `app/interface.py`                                    | Implemented                                              |
+| Gradio web interface (branded FinWiseIQ design, suggested questions, disclaimer footer)           | Frontend (Gradio/Flask/Tkinter)             | `app/finwiseiq_redesign.py`, `app/interface.py`       | Implemented                                              |
 | Evaluation table of test questions and expected answers                                           | Evaluation table                            | `tests/evaluation_questions.csv`, `docs/`             | Implemented                                              |
 | Out-of-scope handling: similarity threshold (0.45) plus refusal instructions in the system prompt | Supports the _Refusal_ evaluation dimension | `src/retrieval.py`, `src/prompt.py`                   | Implemented                                              |
 | Source-aware responses: each answer lists the source documents and sections used                  | Optional                                    | `src/pipeline.py`                                     | Implemented                                              |
@@ -132,7 +132,7 @@ Dependencies are listed in [requirements.txt](requirements.txt). The stack follo
 | PyTorch                                                                                          | Backend required by sentence-transformers                                     | Installed automatically as a dependency |
 | OpenAI API — official [`openai`](https://pypi.org/project/openai/) Python SDK (Chat Completions) | Generate answers from the retrieved context                                   | `src/model.py` (backend only)           |
 | python-dotenv                                                                                    | Load `OPENAI_API_KEY` and `OPENAI_MODEL` from a local `.env` file             | `src/model.py`                          |
-| Gradio                                                                                           | Web-based chat interface                                                      | `app/interface.py`                      |
+| Gradio                                                                                           | Web-based chat interface                                                      | `app/finwiseiq_redesign.py`                      |
 | pytest                                                                                           | Automated tests                                                               | `tests/`                                |
 | GitHub Actions                                                                                   | Run the test suite on every pull request to `main`                            | `.github/workflows/tests.yml`           |
 | Git, GitHub and Jira                                                                             | Version control, pull requests and code review (GitHub); task tracking (Jira) | Collaboration                           |
@@ -153,7 +153,7 @@ The model ID is read from `OPENAI_MODEL` and is not hardcoded, so it can be chan
 
 ```mermaid
 flowchart TD
-    U["Step 1: User"] -->|types a question| UI["Step 2: Gradio frontend<br/>app/interface.py"]
+    U["Step 1: User"] -->|types a question| UI["Step 2: Gradio frontend<br/>app/finwiseiq_redesign.py"]
     UI --> QP["Step 3: Query processing<br/>(reject empty input)"]
     QP --> EM["Step 4: Embedding model<br/>all-MiniLM-L6-v2"]
 
@@ -180,8 +180,8 @@ flowchart TD
 | #   | Component          | File                                  | Responsibility                                                                                                                                                                                                                                                |
 | --- | ------------------ | ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 1   | User               | –                                     | Asks a question in natural language.                                                                                                                                                                                                                          |
-| 2   | Frontend (Gradio)  | `app/interface.py`                    | Accepts input and displays the response. `respond()` calls `get_backend_answer()`, which calls `process_question()`. Catches any unexpected error and shows a friendly message.                                                                               |
-| 3   | Query processing   | `app/interface.py`, `src/pipeline.py` | Trims whitespace and rejects empty input ("Please type a question.").                                                                                                                                                                                         |
+| 2   | Frontend (Gradio)  | `app/finwiseiq_redesign.py`, `app/interface.py` | Accepts input and displays the response. The branded UI passes each question to `respond()`, and `respond()` calls `get_backend_answer()`, which calls `process_question()`. Catches any unexpected error and shows a friendly message.                                                                               |
+| 3   | Query processing   | `app/finwiseiq_redesign.py`, `app/interface.py`, `src/pipeline.py` | Trims whitespace and rejects empty input with a short prompt to type a question, without calling the backend.                                                                                                                                                                                         |
 | 4   | Embedding model    | `src/retrieval.py`                    | Converts the user's question into a normalised vector using `all-MiniLM-L6-v2`.                                                                                                                                                                               |
 | 5   | Semantic retrieval | `src/retrieval.py`                    | `retrieve_context()` compares the query vector with the cached dataset question vectors and ranks them by cosine similarity.                                                                                                                                  |
 | 5a  | Relevance check    | `src/retrieval.py`, `src/pipeline.py` | Only matches scoring ≥ 0.45 are kept. If none are left, `process_question()` returns a fallback message without calling OpenAI.                                                                                                                               |
@@ -189,7 +189,7 @@ flowchart TD
 | 7   | System prompt      | `src/prompt.py`                       | `SYSTEM_PROMPT`: role, five-category domain, answer only from context, refusal rules.                                                                                                                                                                         |
 | 8   | LLM/API            | `src/model.py`                        | `generate_answer()` sends the system prompt, context and question to the OpenAI Chat Completions API. Errors become a `GenerationError` with a safe message; logged errors have the API key redacted. The frontend never calls OpenAI and never sees the key. |
 | 9   | Generated answer   | `src/pipeline.py`                     | The answer plus a de-duplicated "Sources:" list (document and section).                                                                                                                                                                                       |
-| 10  | Response display   | `app/interface.py`                    | The answer is shown in the chat interface.                                                                                                                                                                                                                    |
+| 10  | Response display   | `app/finwiseiq_redesign.py`           | The answer is shown in the chat interface.                                                                                                                                                                                                                    |
 
 ---
 
@@ -226,7 +226,7 @@ Top-k retrieval **always** returns k results, even when none of them is related 
 | At or above 0.45      | Keep matches ≥ 0.45, inject them as context and call the LLM.                                                                                                                                                                                          |
 | Below 0.45            | Do not call the LLM. Return: _"Sorry, I can only answer questions about Islamic finance and Malaysian financial compliance (AML/CFT, KYC/CDD and regulation), and I could not find relevant information for that question. Please try rephrasing it."_ |
 
-**How 0.45 was chosen** (16 November 2026, details in [docs/retrieval_evaluation.md](docs/retrieval_evaluation.md)): clear off-topic test questions (weather, recipe, stock tip) scored at most **0.388**, while the lowest correct in-scope match (AML-006) scored **0.495**. A threshold of 0.5 would have dropped that valid match, so 0.45 was chosen between the two groups.
+**How 0.45 was chosen** (16 November 2026, details in [docs/retrieval_evaluation.md](docs/retrieval_evaluation.md)): clear off-topic test questions (weather, recipe, stock tip) scored at most **0.388**, while the lowest correct in-scope match (AML-006) scored **0.495**. A threshold of 0.5 would have dropped that valid match, so 0.45 was chosen between the two groups. After the KAN-38 dataset update (24 November 2026) the highest score among the clearly off-topic questions (T16–T18) rose to **0.409** (the recipe question against the new sukuk row), which is still below 0.45, so the threshold was kept. The two in-domain-sounding out-of-scope questions (T19 at 0.630, T20 at 0.561) pass the threshold and are refused by the system prompt instead.
 
 The threshold is a **first line of defence only**. Questions that sound in-domain but are outside scope (for example asking for Shariah certification of a product) can pass the threshold, so the system prompt also instructs the LLM to refuse in those cases. This was confirmed in the live test (see [Section 12](#12-evaluation-and-testing)).
 
@@ -277,7 +277,7 @@ USER QUESTION:
 
 ### Dataset
 
-[data/finwiseiq_dataset.csv](data/finwiseiq_dataset.csv) contains **50 question–answer pairs, 10 per category**, exceeding the lecturer's minimum of 30. Full details are in [data/README.md](data/README.md).
+[data/finwiseiq_dataset.csv](data/finwiseiq_dataset.csv) contains **55 question–answer pairs across five categories**, exceeding the lecturer's minimum of 30. Full details are in [data/README.md](data/README.md).
 
 | Column           | Description                                                     | Example                                                                    |
 | ---------------- | --------------------------------------------------------------- | -------------------------------------------------------------------------- |
@@ -291,9 +291,9 @@ USER QUESTION:
 
 | `id` prefix | `category` value                           | Pairs |
 | ----------- | ------------------------------------------ | ----- |
-| `IFF`       | `Islamic Finance Fundamentals`             | 10    |
-| `IFC`       | `Islamic Financing Contracts`              | 10    |
-| `AML`       | `AML/CFT`                                  | 10    |
+| `IFF`       | `Islamic Finance Fundamentals`             | 12    |
+| `IFC`       | `Islamic Financing Contracts`              | 11    |
+| `AML`       | `AML/CFT`                                  | 12    |
 | `KYC`       | `KYC/CDD`                                  | 10    |
 | `REG`       | `Malaysian Financial Regulatory Framework` | 10    |
 
@@ -306,7 +306,7 @@ USER QUESTION:
 
 ### Source documents
 
-All 15 sources, with publisher, date and official link, are listed in [docs/source_registry.md](docs/source_registry.md) and summarised in [Section 17](#17-references). The PDF documents themselves are **not** committed, because they are third-party publications; links to the official publishers are used instead.
+All 17 sources, with publisher, date and official link, are listed in [docs/source_registry.md](docs/source_registry.md) and summarised in [Section 17](#17-references). The PDF documents themselves are **not** committed, because they are third-party publications; links to the official publishers are used instead.
 
 ---
 
@@ -349,14 +349,14 @@ notepad .env
 python -m src.model
 
 # 8. Run the application
-python -m app.interface
+python -m app.finwiseiq_redesign
 ```
 
 Open the local URL that Gradio prints (normally `http://127.0.0.1:7860`) in a browser. The first question takes a few seconds longer because the embedding model is loaded. Stop the app with **Ctrl+C**.
 
 Notes:
 
-- Run the app with `python -m app.interface` from the project folder (not `python app/interface.py`), so Python can find the `src` package.
+- Run the app with `python -m app.finwiseiq_redesign` from the project folder (not `python app/finwiseiq_redesign.py`), so Python can find the `src` package. It opens the branded FinWiseIQ interface (KAN-39), which reuses `respond()` from `app/interface.py`.
 - If you use Command Prompt (`cmd.exe`) instead of PowerShell, activate the environment with `.venv\Scripts\activate.bat` and copy the file with `copy .env.example .env`.
 - On the first run, Hugging Face may print _"You are sending unauthenticated requests to the HF Hub"_. This is only a warning about download rate limits and can be ignored.
 
@@ -412,20 +412,27 @@ csc649-group03-finwiseiq/
 ├── .github/workflows/
 │   └── tests.yml                  # Runs pytest on every pull request to main
 ├── app/
-│   └── interface.py               # Gradio chat interface (entry point: python -m app.interface)
+│   ├── finwiseiq_redesign.py      # Branded Gradio UI (entry point: python -m app.finwiseiq_redesign)
+│   ├── finwiseiq_theme.css        # Styles for the branded UI (colours, mobile layout, reduced motion)
+│   ├── assets/                    # FinWiseIQ logo and favicon
+│   └── interface.py               # respond(): passes questions to the pipeline (used by the branded UI)
 ├── data/
-│   ├── finwiseiq_dataset.csv      # Knowledge base: 50 Q&A pairs with sources
+│   ├── finwiseiq_dataset.csv      # Knowledge base: 55 Q&A pairs with sources
 │   ├── sample.csv                 # Early placeholder rows used during setup (not used by the app)
 │   └── README.md                  # Dataset columns, categories and data rules
 ├── docs/
-│   ├── source_registry.md         # All 15 source documents with links
+│   ├── source_registry.md         # All 17 source documents with links
 │   ├── retrieval_evaluation.md    # Retrieval accuracy and threshold calibration (KAN-36)
 │   ├── generation_test_results.md # OpenAI generation tests (KAN-24)
 │   ├── frontend_test_results.md   # Gradio interface tests (KAN-33)
 │   ├── pipeline_test_results.md   # End-to-end pipeline test with the real API (KAN-34)
 │   ├── end_to_end_answers.md      # Raw answers for all 20 test questions (KAN-40)
 │   ├── end_to_end_evaluation.md   # Five-dimension evaluation table (KAN-40)
-│   └── security_review.md         # Security and repository review (KAN-42)
+│   ├── generation_evaluation.md   # OpenAI answer quality evaluation (KAN-37)
+│   ├── generation_evaluation_answers.md # Raw generation answers (KAN-37)
+│   ├── security_review.md         # Security and repository review (KAN-42)
+│   ├── KAN-39_Gradio_Usability_Test_Report.md # Usability testing U01-U12 (KAN-39)
+│   └── screenshots/               # Usability test screenshots (KAN-39)
 ├── src/
 │   ├── __init__.py
 │   ├── retrieval.py               # Dataset loading, embeddings, top-3 cosine search, threshold
@@ -436,10 +443,12 @@ csc649-group03-finwiseiq/
 │   ├── evaluation_questions.csv   # Test set T01-T20 (15 in-scope, 5 out-of-scope)
 │   ├── evaluate_retrieval.py      # Retrieval evaluation script
 │   ├── evaluate_end_to_end.py     # End-to-end evaluation script (real API)
+│   ├── evaluate_generation.py     # Generation-only evaluation script (real API, KAN-37)
 │   ├── test_retrieval.py          # Retrieval unit tests
 │   ├── test_model.py              # Generation unit tests (OpenAI mocked)
 │   ├── test_pipeline.py           # Pipeline unit tests (OpenAI mocked)
-│   └── test_interface.py          # Interface unit tests (backend mocked)
+│   ├── test_interface.py          # Interface unit tests (backend mocked)
+│   └── test_finwiseiq_redesign.py # Branded UI unit tests (backend mocked)
 ├── .env.example                   # Environment variable template (no real keys)
 ├── .gitignore
 ├── pytest.ini                     # pytest settings (pythonpath, testpaths)
@@ -461,7 +470,7 @@ csc649-group03-finwiseiq/
 
 ### Automated tests
 
-The test suite has **34 tests** and runs without an API key, because OpenAI (and, for interface tests, the backend) are replaced with mocks:
+The test suite has **47 tests** and runs without an API key, because OpenAI (and, for interface tests, the backend) are replaced with mocks:
 
 | File                      | Tests | What is checked                                                                                                                                                     |
 | ------------------------- | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -469,6 +478,7 @@ The test suite has **34 tests** and runs without an API key, because OpenAI (and
 | `tests/test_model.py`     | 12    | Context-grounded generation; input validation; timeout, authentication, rate-limit, connection and other API errors; key redaction in logs; empty responses         |
 | `tests/test_pipeline.py`  | 5     | Empty question; off-topic fallback without calling OpenAI; context passed and sources appended; API failure returns a friendly message; context blocks are numbered |
 | `tests/test_interface.py` | 12    | Empty/invalid input; response display; chat history; backend exceptions; empty/invalid backend replies                                                              |
+| `tests/test_finwiseiq_redesign.py` | 13 | Branded UI: answers and citations shown unchanged; trimmed and empty input; history kept in order; errors hidden from users; Clear button; suggested questions; logo, mobile and reduced-motion CSS |
 
 Run them with:
 
@@ -497,7 +507,7 @@ Each test question is assessed on the lecturer's five dimensions:
 
 ### Results so far
 
-**Retrieval** (16 November 2026, [docs/retrieval_evaluation.md](docs/retrieval_evaluation.md), reproduce with `python -m tests.evaluate_retrieval`):
+**Retrieval** (16 November 2026, re-run 24 November 2026 after the KAN-38 dataset update with the same results, [docs/retrieval_evaluation.md](docs/retrieval_evaluation.md), reproduce with `python -m tests.evaluate_retrieval`):
 
 | Metric                              | Result         |
 | ----------------------------------- | -------------- |
@@ -521,7 +531,9 @@ The two out-of-scope questions that pass the threshold (T19 Shariah certificatio
 
 **Gradio interface** (24 November 2026, KAN-35): through the running app, the Murabahah and customer due diligence questions returned answers with sources, off-topic questions returned the fallback, and empty input returned "Please type a question."
 
-**End-to-end evaluation** (24 November 2026, KAN-40, [docs/end_to_end_evaluation.md](docs/end_to_end_evaluation.md), reproduce with `python -m tests.evaluate_end_to_end`): all 20 test questions were run through the full pipeline with the real OpenAI API and judged on the five dimensions.
+**Usability testing** (24 November 2026, KAN-39, [docs/KAN-39_Gradio_Usability_Test_Report.md](docs/KAN-39_Gradio_Usability_Test_Report.md)): 12 manual scenarios on the branded interface with the real backend (U01–U12: answers with sources, Send button and Enter key, suggested questions, empty input, out-of-scope refusal, chat history, Clear, API error, 390 px mobile width, keyboard and reduced motion). All 12 passed; three had minor notes: low contrast in the welcome text, limited mobile input spacing, and follow-up questions not using earlier chat context. Screenshots are in `docs/screenshots/`. The time-on-task values in the report are estimates, not stopwatch measurements.
+
+**End-to-end evaluation** (24 November 2026, KAN-40, re-run after the KAN-38 dataset update, [docs/end_to_end_evaluation.md](docs/end_to_end_evaluation.md), reproduce with `python -m tests.evaluate_end_to_end`): all 20 test questions were run through the full pipeline with the real OpenAI API and judged on the five dimensions.
 
 | Dimension | Result |
 |---|---|
@@ -531,7 +543,9 @@ The two out-of-scope questions that pass the threshold (T19 Shariah certificatio
 | Refusal (out-of-scope) | 5 / 5 (3 by the threshold, 2 by the system prompt) |
 | Usefulness | 20 / 20 |
 
-The two partial answers were T13, where the expected Federal Court detail is not in the dataset row (a dataset gap, not invented by the model), and T14, where the model left out Malaysia's FATF membership because the question did not ask about it.
+The two partial answers were T13 and T14. In both, the missing detail (the 2019 Federal Court ruling, added to REG-004 in KAN-38, and Malaysia's FATF membership) is in the retrieved row, but the model gave a short answer to a short question and left it out. Nothing was invented.
+
+**Generation-only evaluation** (24 November 2026, KAN-37, [docs/generation_evaluation.md](docs/generation_evaluation.md), reproduce with `python -m tests.evaluate_generation`): `generate_answer()` was tested on its own, with the expected rows supplied directly and, for T16–T20, the threshold bypassed. Correctness 13 / 15 (2 partial, T13 and T14), faithfulness 20 / 20, refusal 5 / 5 (the system prompt refused every out-of-scope question even when OpenAI was called), usefulness 20 / 20.
 
 ---
 
@@ -584,11 +598,12 @@ git log --all --format="%ad  %an  %s" --date=short
 
 ## 14. Limitations
 
-- **Limited coverage.** 50 Q&A pairs cover only a small part of five broad topics. Reasonable questions with no matching entry (for example _zakat_, which is not in the dataset) receive the fallback message.
-- **Retrieval near-misses.** In 3 of 15 in-scope test questions, the expected row was ranked second rather than first (e.g. a murabahah question matched an "ijarah vs murabahah" row first). All three were still in the top 3 and therefore reached the model as context.
+- **Limited coverage.** 55 Q&A pairs cover only a small part of five broad topics. Reasonable questions with no matching entry (for example _zakat_, which is not in the dataset) receive the fallback message.
+- **Retrieval near-misses.** In 3 of 15 in-scope test questions, the expected row was ranked second or third rather than first (e.g. a murabahah question matched an "ijarah vs murabahah" row first). All three were still in the top 3 and therefore reached the model as context.
 - **Similarity does not guarantee relevance.** A high cosine similarity score shows that two texts are semantically close, not that the retrieved answer is correct for the question. Questions that sound in-domain but are out of scope can pass the threshold and rely on the system prompt to refuse.
 - **A single threshold is a trade-off.** 0.45 was calibrated on 20 test questions. It may wrongly refuse some valid questions and accept some unrelated ones, and should be re-calibrated whenever the dataset changes significantly.
 - **Questions are matched, not answers.** Only dataset _questions_ are embedded. A user question that matches the content of an answer but not the wording of its question may be missed.
+- **Short answers can skip details.** For short questions the model sometimes leaves out a relevant fact that is in the retrieved context (T13, T14 in the end-to-end evaluation).
 - **No conversation memory.** Each question is answered on its own; follow-ups such as "tell me more" do not use earlier turns.
 - **LLM hallucination.** Even with context injection and a strict system prompt, the LLM can still add unsupported details or misread the context.
 - **Outdated sources.** Regulations and standards are revised over time. Answers can become outdated if the dataset is not reviewed against newer versions.
@@ -602,8 +617,9 @@ git log --all --format="%ad  %an  %s" --date=short
 
 - Refine the similarity threshold: for example, separate thresholds per category, or a re-ranking step that checks whether each retrieved answer actually addresses the question.
 - Embed answers as well as questions, or combine semantic and keyword search (hybrid retrieval).
-- Add multi-turn conversation history.
-- Expand the dataset (e.g. _zakat_, _takaful_, _sukuk_) and add a scheduled review against new versions of the source documents.
+- Add multi-turn conversation history (confirmed as a limitation in usability test U08).
+- Improve welcome-text contrast and mobile input spacing (KAN-39 usability findings).
+- Expand the dataset further (e.g. _zakat_; _takaful_ and _sukuk_ were added in KAN-38) and add a scheduled review against new versions of the source documents.
 - Retrieve directly from chunks of the source documents rather than only from a hand-written Q&A dataset.
 - Compare other embedding models, including multilingual ones, for Malay and Arabic terms.
 - Support questions and answers in Bahasa Melayu.
@@ -617,8 +633,8 @@ git log --all --format="%ad  %an  %s" --date=short
 | ------------------------------ | ------------------------------------------------------ | -------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Nurin Irdina** (Team Leader) | [@nurinirdnz](https://github.com/nurinirdnz)           | Backend Developer — RAG & System Integration | Project planning, Jira and repository setup; system architecture; dataset loading, embeddings, top-3 semantic retrieval and threshold calibration (`src/retrieval.py`); retrieval evaluation; end-to-end pipeline (`src/pipeline.py`); Gradio–backend integration; CI workflow; pull request reviews |
 | **Nurisha Adilla**             | [@nurishaadilla](https://github.com/nurishaadilla)     | Backend Developer — OpenAI LLM Integration   | System prompt (`src/prompt.py`); OpenAI client and context-based answer generation with error handling (`src/model.py`); generation tests and live API testing                                                                                                                                       |
-| **Syafiqah Wahidah**           | [@syafiqahwahidah](https://github.com/syafiqahwahidah) | Domain Specialist / Knowledge Base Developer | Source research; 50-pair knowledge dataset (`data/finwiseiq_dataset.csv`); source registry; source checking and answer corrections                                                                                                                                                                   |
-| **Siti Nasyitah**              | [@nasyitahrohizat](https://github.com/nasyitahrohizat) | Frontend Developer — Gradio & Testing        | Gradio chat interface (`app/interface.py`); input validation and error messages; interface tests and frontend test results                                                                                                                                                                           |
+| **Syafiqah Wahidah**           | [@syafiqahwahidah](https://github.com/syafiqahwahidah) | Domain Specialist / Knowledge Base Developer | Source research; 55-pair knowledge dataset (`data/finwiseiq_dataset.csv`); source registry; source checking and answer corrections                                                                                                                                                                   |
+| **Siti Nasyitah**              | [@nasyitahrohizat](https://github.com/nasyitahrohizat) | Frontend Developer — Gradio & Testing        | Gradio chat interface (`app/interface.py`) and branded redesign (`app/finwiseiq_redesign.py`); input validation and error messages; interface tests, frontend test results and usability testing (KAN-39)                                                                                                                                                                           |
 
 All members also take part in testing, code review and documentation.
 
@@ -628,7 +644,7 @@ All members also take part in testing, code review and documentation.
 
 ### Knowledge sources
 
-The dataset is written from the following 15 sources. Full titles, dates and official links are in [docs/source_registry.md](docs/source_registry.md).
+The dataset is written from the following 17 sources. Full titles, dates and official links are in [docs/source_registry.md](docs/source_registry.md).
 
 | No  | Source                                                                                                 | Publisher                        | Used for      |
 | --- | ------------------------------------------------------------------------------------------------------ | -------------------------------- | ------------- |
@@ -647,6 +663,8 @@ The dataset is written from the following 15 sources. Full titles, dates and off
 | S13 | Islamic Financial Services Act 2013 (Act 759)                                                          | Parliament of Malaysia           | REG           |
 | S14 | Guidelines on Islamic Capital Market Products and Services (SC-GL/1-2022 (R2-2026))                    | Securities Commission Malaysia   | REG           |
 | S15 | Shariah Resolutions in Islamic Finance (Second Edition), Oct 2010                                      | Bank Negara Malaysia             | IFF           |
+| S16 | Money Laundering: Overview (accessed Nov 2026) | UNODC | AML |
+| S17 | Kunhibava & Yeo (2019), The Constitutionality of sections 56 and 57 of the CBA 2009: JRI Resources v Kuwait Finance House, JMCL 46(2) | Universiti Malaya (JMCL) | REG |
 
 BNM policy documents are copyrighted by BNM. The dataset only paraphrases short points and cites the paragraph used.
 
@@ -660,4 +678,4 @@ BNM policy documents are copyrighted by BNM. The dataset only paraphrases short 
 
 ---
 
-_Last updated 24 November 2026, after the end-to-end evaluation (KAN-40). Re-run both evaluation scripts and update Section 12 if the dataset changes._
+_Last updated 24 November 2026, after the KAN-38 dataset update, the re-run of both evaluations and the KAN-39 interface redesign. Re-run both evaluation scripts and update Section 12 if the dataset changes._
