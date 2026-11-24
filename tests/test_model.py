@@ -114,7 +114,7 @@ def test_generate_answer_auth_error_redacts_api_key(
     assert "authentication issue" in str(exc_info.value).lower()
     assert secret_key not in str(exc_info.value)
     assert secret_key not in caplog.text
-    assert "[REDACTED]" in caplog.text
+    assert "OpenAI authentication failed." in caplog.text
     assert exc_info.value.__cause__ is None
 
 
