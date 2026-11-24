@@ -38,15 +38,52 @@ body { background: #081429 !important; }
 .fw-tags span { padding:7px 12px; background:rgba(255,255,255,.07); border:1px solid rgba(174,219,225,.15); color:#dcebe8; font-size:12px; border-radius:100px; }
 #fw-chat-shell { border:1px solid var(--fw-border) !important; padding:18px !important; border-radius:24px !important; background:rgba(15,32,53,.93) !important; box-shadow:0 18px 55px rgba(0,0,0,.14); }
 .fw-section-caption { display:flex; align-items:center; justify-content:space-between; color:#fff; font-weight:750; margin:2px 0 14px; font-size:14px; }
+#fw-chat-shell .fw-section-caption h2 {
+  margin: 0;
+  color: var(--fw-ink);
+  font: inherit;
+}
 .fw-section-caption small { color:#93b7bb; font-size:11px; font-weight:600; }
 #fw-chatbox { border:1px solid rgba(139,179,200,.22); border-radius:17px !important; background:rgba(5,18,34,.80) !important; }
+#fw-chatbox .placeholder-content p {
+  color: var(--fw-muted);
+}
 #fw-chatbox .message { animation:fw-rise .32s both; }
-#fw-chatbox .message.bot, #fw-chatbox .message.assistant { border:1px solid rgba(77,160,162,.18); }
-#fw-chatbox .message.user { border:1px solid rgba(38,207,180,.2); }
+#fw-chatbox .message.bot {
+  --fw-message-text: var(--fw-ink);
+  background: #112b44;
+  border: 1px solid #31516a;
+  color: var(--fw-message-text);
+}
+#fw-chatbox .message.user {
+  --fw-message-text: #fff;
+  background: #086459;
+  border: 1px solid #398e82;
+  color: var(--fw-message-text);
+}
+#fw-chatbox :is(.message.bot, .message.user) .prose {
+  color: var(--fw-message-text);
+  overflow-wrap: anywhere;
+}
+#fw-chatbox :is(.message.bot, .message.user) .prose :where(p, li, strong, em, blockquote, h1, h2, h3, h4, h5, h6, th, td, pre, code) {
+  color: var(--fw-message-text);
+}
+#fw-chatbox :is(.message.bot, .message.user) .prose a {
+  color: #a2faed;
+  text-decoration: underline;
+}
+#fw-chatbox :is(.message.bot, .message.user) .prose :is(pre, code) {
+  background: #0b2137;
+  white-space: pre-wrap;
+}
 #fw-question { min-width: 0; }
+#fw-question label span { color: var(--fw-ink); }
 #fw-question textarea, #fw-question input { background:#0a2137 !important; color:#fff !important; border:1px solid rgba(149,190,209,.29) !important; border-radius:13px !important; padding:12px 14px !important; }
 #fw-question textarea::placeholder, #fw-question input::placeholder { color:#b0c2cd !important; opacity:1; }
-#fw-question textarea:focus, #fw-question input:focus { outline:2px solid rgba(33,218,185,.45) !important; }
+#fw-chat-shell :is(textarea, input, button, a):focus-visible {
+  outline: 3px solid var(--fw-gold) !important;
+  outline-offset: 3px;
+}
 #fw-send { background:linear-gradient(115deg,#27d9bf,#0daaaf) !important; color:#052439 !important; font-weight:800 !important; border:0 !important; border-radius:12px !important; box-shadow:0 8px 23px rgba(17,197,186,.2); transition:transform .2s ease, box-shadow .2s ease; }
 #fw-send:hover { transform:translateY(-2px); box-shadow:0 12px 28px rgba(17,197,186,.36); }
 #fw-clear { border-radius:12px !important; background:rgba(255,255,255,.05) !important; border:1px solid var(--fw-border) !important; color:#b9d1dc !important; }
@@ -65,8 +102,25 @@ body { background: #081429 !important; }
  .fw-brand strong { font-size:20px; }
  .fw-live { padding:8px 10px; }
  .fw-hero { border-radius:17px; }
- #fw-chat-shell { padding:10px !important; border-radius:16px !important; }
+ #fw-chat-shell { padding:14px !important; border-radius:16px !important; }
  .fw-section-caption small { display:none; }
+ #fw-chatbox .placeholder-content p { font-size: 16px; }
+ #fw-composer {
+   display: grid !important;
+   grid-template-columns: repeat(2, minmax(0, 1fr));
+   gap: 10px;
+ }
+ #fw-question { grid-column: 1 / -1; }
+ #fw-question textarea, #fw-question input {
+   min-height: 48px;
+   font-size: 16px;
+   line-height: 1.45;
+ }
+ #fw-send, #fw-clear {
+   min-width: 0 !important;
+   min-height: 44px;
+ }
+ .fw-suggestions button, .fw-footer-text { font-size: 14px; }
 }
 @media (prefers-reduced-motion:reduce) {
  .fw-live .fw-dot, #fw-chatbox .message { animation:none !important; }

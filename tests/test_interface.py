@@ -2,9 +2,11 @@
 
 from unittest.mock import Mock
 
+import gradio as gr
 import pytest
 
 import app.interface as interface
+from app.finwiseiq_redesign import _real_responder, process_message
 
 
 @pytest.mark.parametrize("message", ["", "   ", "\n\t", None, 123])
@@ -28,11 +30,11 @@ def test_chat_input_and_response_display(monkeypatch):
     result = interface.respond("What is Murabahah?", [])
 
     assert result == "Murabahah is a cost-plus sale."
-    fake_backend.assert_called_once_with("What is Murabahah?")
+    fake_backend.assert_called_once_with("What is Murabahah?", [])
 
 
 def test_chat_history(monkeypatch):
-    """Previous chat history should not prevent a new response."""
+    """The response handler should forward the previous chat history."""
     fake_backend = Mock(return_value="Mock follow-up answer")
     monkeypatch.setattr(interface, "get_backend_answer", fake_backend)
 
@@ -44,6 +46,32 @@ def test_chat_history(monkeypatch):
     result = interface.respond("Tell me more.", history)
 
     assert result == "Mock follow-up answer"
+    fake_backend.assert_called_once_with("Tell me more.", history)
+
+
+def test_redesigned_chat_forwards_gradio_history_to_pipeline(monkeypatch):
+    chatbot = gr.Chatbot()
+    history = chatbot.preprocess(chatbot.postprocess([
+        {"role": "user", "content": "What is Murabahah?"},
+        {"role": "assistant", "content": "Murabahah is a cost-plus sale."},
+    ]))
+    answer = "Here is more detail.\n\nSources:\n- Sample source"
+    fake_pipeline = Mock(return_value=answer)
+    monkeypatch.setattr(interface, "process_question", fake_pipeline)
+    responder = _real_responder()
+
+    messages, text = process_message("Tell me more.", history, responder)
+
+    fake_pipeline.assert_called_once_with("Tell me more.", history)
+    assert messages[:2] == history
+    assert messages[-1] == {"role": "assistant", "content": answer}
+    assert text == ""
+
+    fake_pipeline.reset_mock()
+    messages, _ = process_message("Hai!", messages, responder)
+
+    fake_pipeline.assert_not_called()
+    assert messages[-1]["content"].startswith("Hai!")
 
 
 def test_backend_failure(monkeypatch):

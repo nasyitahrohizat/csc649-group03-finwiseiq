@@ -8,6 +8,7 @@ Run from repository root: python -m app.finwiseiq_redesign
 
 from __future__ import annotations
 
+import asyncio
 import base64
 from pathlib import Path
 from typing import Callable
@@ -30,6 +31,21 @@ ERROR_MESSAGE = (
     "Please try again in a moment."
 )
 EMPTY_MESSAGE = "Please type a question about Islamic finance or Malaysian financial compliance."
+WELCOME_MESSAGE = "Welcome to FinWiseIQ! Choose a suggested topic or type your question below."
+LOADING_MESSAGE = "Preparing your answer…"
+ENGLISH_GREETING = "Hello! How can I help you with Islamic finance or Malaysian financial compliance?"
+MALAY_GREETING = "Hai! Ada soalan tentang kewangan Islam atau pematuhan kewangan di Malaysia?"
+SALAM_GREETING = (
+    "Waalaikumsalam! Ada soalan tentang kewangan Islam atau pematuhan kewangan di Malaysia?"
+)
+GREETING_RESPONSES = {
+    "hi": ENGLISH_GREETING,
+    "hello": ENGLISH_GREETING,
+    "hai": MALAY_GREETING,
+    "salam": SALAM_GREETING,
+    "assalamualaikum": SALAM_GREETING,
+    "assalamu alaikum": SALAM_GREETING,
+}
 
 
 def _real_responder() -> Callable:
@@ -42,36 +58,54 @@ def _real_responder() -> Callable:
     return respond
 
 
-def process_message(message: str, history: list[dict] | None, responder: Callable):
-    """Append one chat turn without rewriting the backend response or citations."""
+def _assistant_says(message: dict, text: str) -> bool:
+    if message["role"] != "assistant":
+        return False
+    content = message["content"]
+    # Gradio can return rendered text as a list of content blocks.
+    if isinstance(content, list) and len(content) == 1:
+        block = content[0]
+        if isinstance(block, dict) and block.get("type") == "text":
+            content = block.get("text")
+    return content == text
+
+
+def _append_question(message: str, history: list[dict] | None):
     safe_history = list(history or [])
     question = (message or "").strip()
     if not question:
+        if safe_history and _assistant_says(safe_history[-1], EMPTY_MESSAGE):
+            return safe_history, ""
         return safe_history + [{"role": "assistant", "content": EMPTY_MESSAGE}], ""
 
-    # Use the prior dialogue as the existing backend handler expects.
-    # For the PR #18 implementation, respond() returns the final answer string.
-    try:
-        answer = responder(question, safe_history)
-        if not isinstance(answer, str):
-            # Defensive support for handlers returning a simple object with text.
-            answer = str(answer) if answer is not None else ERROR_MESSAGE
-    except Exception:
-        # No traceback / API key / sensitive information displayed to users.
-        answer = ERROR_MESSAGE
+    return safe_history + [{"role": "user", "content": question}], question
 
-    return (
-        safe_history
-        + [
-            {"role": "user", "content": question},
-            {"role": "assistant", "content": answer},
-        ],
-        "",
-    )
+
+def _answer_message(question: str, history: list[dict], responder: Callable) -> dict:
+    greeting = " ".join(question.casefold().strip("!?., ").split())
+    answer = GREETING_RESPONSES.get(greeting)
+    if answer is None:
+        try:
+            answer = responder(question, history)
+            if not isinstance(answer, str):
+                answer = str(answer) if answer is not None else ERROR_MESSAGE
+        except Exception:
+            # Keep API keys and technical details out of user-facing errors.
+            answer = ERROR_MESSAGE
+
+    return {"role": "assistant", "content": answer}
+
+
+def process_message(message: str, history: list[dict] | None, responder: Callable):
+    """Process a complete chat turn for callers that need both steps together."""
+    messages, question = _append_question(message, history)
+    if question:
+        messages.append(_answer_message(question, messages[:-1], responder))
+    return messages, ""
 
 
 def reset_conversation():
-    return [], ""
+    return [{"role": "assistant", "content": WELCOME_MESSAGE}], ""
 
 
 def get_logo_data_url() -> str:
@@ -114,62 +148,92 @@ def build_app(responder: Callable | None = None) -> gr.Blocks:
         )
         with gr.Column(elem_id="fw-chat-shell"):
             gr.HTML(
-                '''<div class="fw-section-caption"><span>✦ Ask FinWiseIQ</span>
+                '''<div class="fw-section-caption"><h2>✦ Ask FinWiseIQ</h2>
                 <small>Explore • Ask • Learn</small></div>''',
                 container=False,
             )
             transcript = gr.Chatbot(
-                value=[],
+                value=reset_conversation()[0],
                 show_label=False,
                 height=365,
                 elem_id="fw-chatbox",
-                placeholder="Welcome to FinWiseIQ. Choose a suggested topic or type your question below.",
                 buttons=["copy"],
             )
-            with gr.Row(equal_height=True):
+            with gr.Row(equal_height=True, elem_id="fw-composer"):
                 query = gr.Textbox(
-                    show_label=False,
+                    label="Your question",
                     placeholder="Ask about Islamic finance or Malaysian financial compliance...",
                     lines=1,
                     max_lines=3,
                     scale=8,
                     container=False,
-                    autofocus=True,
+                    html_attributes=gr.InputHTMLAttributes(enterkeyhint="send"),
                     elem_id="fw-question",
                 )
                 send = gr.Button("Send ↗", variant="primary", scale=1, min_width=95, elem_id="fw-send")
                 clear = gr.Button("Clear", variant="secondary", scale=1, min_width=90, elem_id="fw-clear")
 
             gr.HTML('<div class="fw-suggest-text">TRY A SUGGESTED QUESTION</div>', elem_id="fw-suggestions-label", container=False)
+            suggestions = {}
             with gr.Row(elem_classes="fw-suggestions"):
                 for i, suggestion in enumerate(SUGGESTIONS):
                     chip = gr.Button(suggestion, variant="secondary", size="sm", key=f"fw-chip-{i}")
-                    chip.click(
-                        fn=lambda selected=suggestion: selected,
-                        inputs=[],
-                        outputs=query,
-                        queue=False,
-                    ).then(
-                        fn=lambda m, h: process_message(m, h, backend),
-                        inputs=[query, transcript],
-                        outputs=[transcript, query],
-                        show_progress="full",
-                    )
+                    suggestions[chip] = suggestion
 
-            submit_action = lambda m, h: process_message(m, h, backend)
-            query.submit(
-                fn=submit_action,
-                inputs=[query, transcript],
+            pending_reply = gr.State({})
+
+            async def show_question(message, history, pending, event: gr.EventData):
+                if pending:
+                    return gr.skip(), gr.skip()
+                prompt = suggestions.get(event.target, message)
+                messages, question = _append_question(prompt, history)
+                if question:
+                    pending["turn"] = (question, messages)
+                    return messages + [{"role": "assistant", "content": LOADING_MESSAGE}], ""
+                return messages, ""
+
+            async def show_answer(pending):
+                turn = pending.get("turn")
+                if turn is None or pending.get("started"):
+                    return gr.skip()
+                pending["started"] = True
+                try:
+                    question, messages = turn
+                    history = messages[:-1]
+                    if history and _assistant_says(history[0], WELCOME_MESSAGE):
+                        history = history[1:]
+                    reply = await asyncio.to_thread(_answer_message, question, history, backend)
+                    # Clear can remove this turn while the backend is still running.
+                    return messages + [reply] if pending.get("turn") is turn else gr.skip()
+                finally:
+                    if pending.get("turn") is turn:
+                        pending.clear()
+
+            async def clear_chat(pending):
+                pending.clear()
+                return reset_conversation()
+
+            submit = gr.on(
+                [query.submit, send.click, *(chip.click for chip in suggestions)],
+                fn=show_question,
+                inputs=[query, transcript, pending_reply],
                 outputs=[transcript, query],
-                show_progress="full",
+                queue=False,
+                show_progress="hidden",
             )
-            send.click(
-                fn=submit_action,
-                inputs=[query, transcript],
+            answer = submit.then(
+                fn=show_answer,
+                inputs=pending_reply,
+                outputs=transcript,
+                show_progress="hidden",
+            )
+            clear.click(
+                fn=clear_chat,
+                inputs=pending_reply,
                 outputs=[transcript, query],
-                show_progress="full",
+                cancels=[answer],
+                queue=False,
             )
-            clear.click(fn=reset_conversation, inputs=[], outputs=[transcript, query], queue=False)
 
         gr.HTML(
             '''<footer class="fw-footer-text">
