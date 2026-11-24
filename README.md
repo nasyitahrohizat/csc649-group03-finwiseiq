@@ -110,7 +110,7 @@ FinWiseIQ will **not**:
 | Semantic search with Sentence Transformers (`all-MiniLM-L6-v2`) and cosine similarity             | Custom knowledge retrieval (RAG)            | `src/retrieval.py`                                    | Implemented                                              |
 | Retrieval of the top-k most relevant Q&A pairs (k = 3)                                            | Custom knowledge retrieval (RAG)            | `src/retrieval.py`                                    | Implemented                                              |
 | Injection of retrieved Q&A pairs into the LLM prompt                                              | Context injection                           | `src/pipeline.py`, `src/model.py`                     | Implemented                                              |
-| Gradio web interface                                                                              | Frontend (Gradio/Flask/Tkinter)             | `app/interface.py`                                    | Implemented                                              |
+| Gradio web interface (branded FinWiseIQ design, suggested questions, disclaimer footer)           | Frontend (Gradio/Flask/Tkinter)             | `app/finwiseiq_redesign.py`, `app/interface.py`       | Implemented                                              |
 | Evaluation table of test questions and expected answers                                           | Evaluation table                            | `tests/evaluation_questions.csv`, `docs/`             | Implemented                                              |
 | Out-of-scope handling: similarity threshold (0.45) plus refusal instructions in the system prompt | Supports the _Refusal_ evaluation dimension | `src/retrieval.py`, `src/prompt.py`                   | Implemented                                              |
 | Source-aware responses: each answer lists the source documents and sections used                  | Optional                                    | `src/pipeline.py`                                     | Implemented                                              |
@@ -153,7 +153,7 @@ The model ID is read from `OPENAI_MODEL` and is not hardcoded, so it can be chan
 
 ```mermaid
 flowchart TD
-    U["Step 1: User"] -->|types a question| UI["Step 2: Gradio frontend<br/>app/interface.py"]
+    U["Step 1: User"] -->|types a question| UI["Step 2: Gradio frontend<br/>app/finwiseiq_redesign.py"]
     UI --> QP["Step 3: Query processing<br/>(reject empty input)"]
     QP --> EM["Step 4: Embedding model<br/>all-MiniLM-L6-v2"]
 
@@ -180,8 +180,8 @@ flowchart TD
 | #   | Component          | File                                  | Responsibility                                                                                                                                                                                                                                                |
 | --- | ------------------ | ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 1   | User               | –                                     | Asks a question in natural language.                                                                                                                                                                                                                          |
-| 2   | Frontend (Gradio)  | `app/interface.py`                    | Accepts input and displays the response. `respond()` calls `get_backend_answer()`, which calls `process_question()`. Catches any unexpected error and shows a friendly message.                                                                               |
-| 3   | Query processing   | `app/interface.py`, `src/pipeline.py` | Trims whitespace and rejects empty input ("Please type a question.").                                                                                                                                                                                         |
+| 2   | Frontend (Gradio)  | `app/finwiseiq_redesign.py`, `app/interface.py` | Accepts input and displays the response. The branded UI passes each question to `respond()`, and `respond()` calls `get_backend_answer()`, which calls `process_question()`. Catches any unexpected error and shows a friendly message.                                                                               |
+| 3   | Query processing   | `app/finwiseiq_redesign.py`, `app/interface.py`, `src/pipeline.py` | Trims whitespace and rejects empty input with a short prompt to type a question, without calling the backend.                                                                                                                                                                                         |
 | 4   | Embedding model    | `src/retrieval.py`                    | Converts the user's question into a normalised vector using `all-MiniLM-L6-v2`.                                                                                                                                                                               |
 | 5   | Semantic retrieval | `src/retrieval.py`                    | `retrieve_context()` compares the query vector with the cached dataset question vectors and ranks them by cosine similarity.                                                                                                                                  |
 | 5a  | Relevance check    | `src/retrieval.py`, `src/pipeline.py` | Only matches scoring ≥ 0.45 are kept. If none are left, `process_question()` returns a fallback message without calling OpenAI.                                                                                                                               |
@@ -349,14 +349,14 @@ notepad .env
 python -m src.model
 
 # 8. Run the application
-python -m app.interface
+python -m app.finwiseiq_redesign
 ```
 
 Open the local URL that Gradio prints (normally `http://127.0.0.1:7860`) in a browser. The first question takes a few seconds longer because the embedding model is loaded. Stop the app with **Ctrl+C**.
 
 Notes:
 
-- Run the app with `python -m app.interface` from the project folder (not `python app/interface.py`), so Python can find the `src` package.
+- Run the app with `python -m app.finwiseiq_redesign` from the project folder (not `python app/finwiseiq_redesign.py`), so Python can find the `src` package. It opens the branded FinWiseIQ interface (KAN-39), which reuses `respond()` from `app/interface.py`. The original plain interface can still be started with `python -m app.interface`.
 - If you use Command Prompt (`cmd.exe`) instead of PowerShell, activate the environment with `.venv\Scripts\activate.bat` and copy the file with `copy .env.example .env`.
 - On the first run, Hugging Face may print _"You are sending unauthenticated requests to the HF Hub"_. This is only a warning about download rate limits and can be ignored.
 
@@ -412,7 +412,10 @@ csc649-group03-finwiseiq/
 ├── .github/workflows/
 │   └── tests.yml                  # Runs pytest on every pull request to main
 ├── app/
-│   └── interface.py               # Gradio chat interface (entry point: python -m app.interface)
+│   ├── finwiseiq_redesign.py      # Branded Gradio UI (entry point: python -m app.finwiseiq_redesign)
+│   ├── finwiseiq_theme.css        # Styles for the branded UI (colours, mobile layout, reduced motion)
+│   ├── assets/                    # FinWiseIQ logo and favicon
+│   └── interface.py               # respond() and the original plain Gradio interface (python -m app.interface)
 ├── data/
 │   ├── finwiseiq_dataset.csv      # Knowledge base: 55 Q&A pairs with sources
 │   ├── sample.csv                 # Early placeholder rows used during setup (not used by the app)
@@ -427,7 +430,9 @@ csc649-group03-finwiseiq/
 │   ├── end_to_end_evaluation.md   # Five-dimension evaluation table (KAN-40)
 │   ├── generation_evaluation.md   # OpenAI answer quality evaluation (KAN-37)
 │   ├── generation_evaluation_answers.md # Raw generation answers (KAN-37)
-│   └── security_review.md         # Security and repository review (KAN-42)
+│   ├── security_review.md         # Security and repository review (KAN-42)
+│   ├── KAN-39_Gradio_Usability_Test_Report.md # Usability testing U01-U12 (KAN-39)
+│   └── screenshots/               # Usability test screenshots (KAN-39)
 ├── src/
 │   ├── __init__.py
 │   ├── retrieval.py               # Dataset loading, embeddings, top-3 cosine search, threshold
@@ -442,7 +447,8 @@ csc649-group03-finwiseiq/
 │   ├── test_retrieval.py          # Retrieval unit tests
 │   ├── test_model.py              # Generation unit tests (OpenAI mocked)
 │   ├── test_pipeline.py           # Pipeline unit tests (OpenAI mocked)
-│   └── test_interface.py          # Interface unit tests (backend mocked)
+│   ├── test_interface.py          # Interface unit tests (backend mocked)
+│   └── test_finwiseiq_redesign.py # Branded UI unit tests (backend mocked)
 ├── .env.example                   # Environment variable template (no real keys)
 ├── .gitignore
 ├── pytest.ini                     # pytest settings (pythonpath, testpaths)
@@ -464,7 +470,7 @@ csc649-group03-finwiseiq/
 
 ### Automated tests
 
-The test suite has **34 tests** and runs without an API key, because OpenAI (and, for interface tests, the backend) are replaced with mocks:
+The test suite has **47 tests** and runs without an API key, because OpenAI (and, for interface tests, the backend) are replaced with mocks:
 
 | File                      | Tests | What is checked                                                                                                                                                     |
 | ------------------------- | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -472,6 +478,7 @@ The test suite has **34 tests** and runs without an API key, because OpenAI (and
 | `tests/test_model.py`     | 12    | Context-grounded generation; input validation; timeout, authentication, rate-limit, connection and other API errors; key redaction in logs; empty responses         |
 | `tests/test_pipeline.py`  | 5     | Empty question; off-topic fallback without calling OpenAI; context passed and sources appended; API failure returns a friendly message; context blocks are numbered |
 | `tests/test_interface.py` | 12    | Empty/invalid input; response display; chat history; backend exceptions; empty/invalid backend replies                                                              |
+| `tests/test_finwiseiq_redesign.py` | 13 | Branded UI: answers and citations shown unchanged; trimmed and empty input; history kept in order; errors hidden from users; Clear button; suggested questions; logo, mobile and reduced-motion CSS |
 
 Run them with:
 
@@ -523,6 +530,8 @@ The two out-of-scope questions that pass the threshold (T19 Shariah certificatio
 | Invalid API key                                     | Friendly error message; no crash                                                   |
 
 **Gradio interface** (24 November 2026, KAN-35): through the running app, the Murabahah and customer due diligence questions returned answers with sources, off-topic questions returned the fallback, and empty input returned "Please type a question."
+
+**Usability testing** (24 November 2026, KAN-39, [docs/KAN-39_Gradio_Usability_Test_Report.md](docs/KAN-39_Gradio_Usability_Test_Report.md)): 12 manual scenarios on the branded interface with the real backend (U01–U12: answers with sources, Send button and Enter key, suggested questions, empty input, out-of-scope refusal, chat history, Clear, API error, 390 px mobile width, keyboard and reduced motion). All 12 passed; three had minor notes: low contrast in the welcome text, limited mobile input spacing, and follow-up questions not using earlier chat context. Screenshots are in `docs/screenshots/`. The time-on-task values in the report are estimates, not stopwatch measurements.
 
 **End-to-end evaluation** (24 November 2026, KAN-40, re-run after the KAN-38 dataset update, [docs/end_to_end_evaluation.md](docs/end_to_end_evaluation.md), reproduce with `python -m tests.evaluate_end_to_end`): all 20 test questions were run through the full pipeline with the real OpenAI API and judged on the five dimensions.
 
@@ -608,7 +617,8 @@ git log --all --format="%ad  %an  %s" --date=short
 
 - Refine the similarity threshold: for example, separate thresholds per category, or a re-ranking step that checks whether each retrieved answer actually addresses the question.
 - Embed answers as well as questions, or combine semantic and keyword search (hybrid retrieval).
-- Add multi-turn conversation history.
+- Add multi-turn conversation history (confirmed as a limitation in usability test U08).
+- Improve welcome-text contrast and mobile input spacing (KAN-39 usability findings).
 - Expand the dataset further (e.g. _zakat_; _takaful_ and _sukuk_ were added in KAN-38) and add a scheduled review against new versions of the source documents.
 - Retrieve directly from chunks of the source documents rather than only from a hand-written Q&A dataset.
 - Compare other embedding models, including multilingual ones, for Malay and Arabic terms.
@@ -624,7 +634,7 @@ git log --all --format="%ad  %an  %s" --date=short
 | **Nurin Irdina** (Team Leader) | [@nurinirdnz](https://github.com/nurinirdnz)           | Backend Developer — RAG & System Integration | Project planning, Jira and repository setup; system architecture; dataset loading, embeddings, top-3 semantic retrieval and threshold calibration (`src/retrieval.py`); retrieval evaluation; end-to-end pipeline (`src/pipeline.py`); Gradio–backend integration; CI workflow; pull request reviews |
 | **Nurisha Adilla**             | [@nurishaadilla](https://github.com/nurishaadilla)     | Backend Developer — OpenAI LLM Integration   | System prompt (`src/prompt.py`); OpenAI client and context-based answer generation with error handling (`src/model.py`); generation tests and live API testing                                                                                                                                       |
 | **Syafiqah Wahidah**           | [@syafiqahwahidah](https://github.com/syafiqahwahidah) | Domain Specialist / Knowledge Base Developer | Source research; 55-pair knowledge dataset (`data/finwiseiq_dataset.csv`); source registry; source checking and answer corrections                                                                                                                                                                   |
-| **Siti Nasyitah**              | [@nasyitahrohizat](https://github.com/nasyitahrohizat) | Frontend Developer — Gradio & Testing        | Gradio chat interface (`app/interface.py`); input validation and error messages; interface tests and frontend test results                                                                                                                                                                           |
+| **Siti Nasyitah**              | [@nasyitahrohizat](https://github.com/nasyitahrohizat) | Frontend Developer — Gradio & Testing        | Gradio chat interface (`app/interface.py`) and branded redesign (`app/finwiseiq_redesign.py`); input validation and error messages; interface tests, frontend test results and usability testing (KAN-39)                                                                                                                                                                           |
 
 All members also take part in testing, code review and documentation.
 
@@ -668,4 +678,4 @@ BNM policy documents are copyrighted by BNM. The dataset only paraphrases short 
 
 ---
 
-_Last updated 24 November 2026, after the KAN-38 dataset update and the re-run of both evaluations. Re-run both evaluation scripts and update Section 12 if the dataset changes._
+_Last updated 24 November 2026, after the KAN-38 dataset update, the re-run of both evaluations and the KAN-39 interface redesign. Re-run both evaluation scripts and update Section 12 if the dataset changes._
