@@ -1,10 +1,10 @@
 import gradio as gr
 
+from src.pipeline import process_question
 
-def mock_backend(message):
-    """Return a temporary response until the RAG backend is ready."""
-    return "This is a demo response. The FinWiseIQ backend will be connected soon."
-
+def get_backend_answer(message):
+    """Send the question to the RAG pipeline (retrieval + OpenAI) and return the reply."""
+    return process_question(message)
 
 def respond(message, history):
     """Handle user questions and backend errors safely."""
@@ -13,7 +13,7 @@ def respond(message, history):
         return "Please type a question."
 
     try:
-        reply = mock_backend(message.strip())
+        reply = get_backend_answer(message.strip())
 
         if not isinstance(reply, str) or not reply.strip():
             return "Sorry, I couldn't get an answer right now. Please try again."
@@ -32,7 +32,8 @@ demo = gr.ChatInterface(
         "What is Murabahah financing?",
         "What is Islamic banking?",
         "What is Shariah-compliant financing?",
-        "What is the difference between zakat and tax?"
+        "What is the difference between Islamic and conventional banking?"
+
     ],
     textbox=gr.Textbox(
         placeholder="Ask a question about Islamic finance or Malaysian financial compliance...",
