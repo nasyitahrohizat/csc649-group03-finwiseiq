@@ -264,3 +264,12 @@ def test_generate_answer_out_of_scope_question(mock_get_client, _mock_model):
     )
 
     assert "islamic finance" in answer.lower()
+
+
+def test_system_prompt_includes_generation_improvement_rules():
+    """SYSTEM_PROMPT enforces user-language replies, key facts, and clean output."""
+    prompt_lower = SYSTEM_PROMPT.lower()
+    assert "same language the user wrote in" in prompt_lower
+    assert "key facts" in prompt_lower
+    assert "in the context provided" in prompt_lower
+    assert "do not repeat or cite" in prompt_lower
