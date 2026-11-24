@@ -132,7 +132,7 @@ Dependencies are listed in [requirements.txt](requirements.txt). The stack follo
 | PyTorch                                                                                          | Backend required by sentence-transformers                                     | Installed automatically as a dependency |
 | OpenAI API — official [`openai`](https://pypi.org/project/openai/) Python SDK (Chat Completions) | Generate answers from the retrieved context                                   | `src/model.py` (backend only)           |
 | python-dotenv                                                                                    | Load `OPENAI_API_KEY` and `OPENAI_MODEL` from a local `.env` file             | `src/model.py`                          |
-| Gradio                                                                                           | Web-based chat interface                                                      | `app/interface.py`                      |
+| Gradio                                                                                           | Web-based chat interface                                                      | `app/finwiseiq_redesign.py`                      |
 | pytest                                                                                           | Automated tests                                                               | `tests/`                                |
 | GitHub Actions                                                                                   | Run the test suite on every pull request to `main`                            | `.github/workflows/tests.yml`           |
 | Git, GitHub and Jira                                                                             | Version control, pull requests and code review (GitHub); task tracking (Jira) | Collaboration                           |
@@ -189,7 +189,7 @@ flowchart TD
 | 7   | System prompt      | `src/prompt.py`                       | `SYSTEM_PROMPT`: role, five-category domain, answer only from context, refusal rules.                                                                                                                                                                         |
 | 8   | LLM/API            | `src/model.py`                        | `generate_answer()` sends the system prompt, context and question to the OpenAI Chat Completions API. Errors become a `GenerationError` with a safe message; logged errors have the API key redacted. The frontend never calls OpenAI and never sees the key. |
 | 9   | Generated answer   | `src/pipeline.py`                     | The answer plus a de-duplicated "Sources:" list (document and section).                                                                                                                                                                                       |
-| 10  | Response display   | `app/interface.py`                    | The answer is shown in the chat interface.                                                                                                                                                                                                                    |
+| 10  | Response display   | `app/finwiseiq_redesign.py`           | The answer is shown in the chat interface.                                                                                                                                                                                                                    |
 
 ---
 
@@ -356,7 +356,7 @@ Open the local URL that Gradio prints (normally `http://127.0.0.1:7860`) in a br
 
 Notes:
 
-- Run the app with `python -m app.finwiseiq_redesign` from the project folder (not `python app/finwiseiq_redesign.py`), so Python can find the `src` package. It opens the branded FinWiseIQ interface (KAN-39), which reuses `respond()` from `app/interface.py`. The original plain interface can still be started with `python -m app.interface`.
+- Run the app with `python -m app.finwiseiq_redesign` from the project folder (not `python app/finwiseiq_redesign.py`), so Python can find the `src` package. It opens the branded FinWiseIQ interface (KAN-39), which reuses `respond()` from `app/interface.py`.
 - If you use Command Prompt (`cmd.exe`) instead of PowerShell, activate the environment with `.venv\Scripts\activate.bat` and copy the file with `copy .env.example .env`.
 - On the first run, Hugging Face may print _"You are sending unauthenticated requests to the HF Hub"_. This is only a warning about download rate limits and can be ignored.
 
@@ -415,7 +415,7 @@ csc649-group03-finwiseiq/
 │   ├── finwiseiq_redesign.py      # Branded Gradio UI (entry point: python -m app.finwiseiq_redesign)
 │   ├── finwiseiq_theme.css        # Styles for the branded UI (colours, mobile layout, reduced motion)
 │   ├── assets/                    # FinWiseIQ logo and favicon
-│   └── interface.py               # respond() and the original plain Gradio interface (python -m app.interface)
+│   └── interface.py               # respond(): passes questions to the pipeline (used by the branded UI)
 ├── data/
 │   ├── finwiseiq_dataset.csv      # Knowledge base: 55 Q&A pairs with sources
 │   ├── sample.csv                 # Early placeholder rows used during setup (not used by the app)
