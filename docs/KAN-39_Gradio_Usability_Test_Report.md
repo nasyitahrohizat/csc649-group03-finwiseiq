@@ -89,3 +89,13 @@ However, U08 confirmed that the backend does not use previous chat messages as c
 The automated frontend tests passed (13/13). Supporting screenshots and usability observations are included in the report.
 
 **Status: Completed with documented limitations.**
+
+## KAN-45 follow-up verification
+
+These Chrome captures show the same Murabahah question at 390 × 844 while a mock answer is pending. The before view uses commit `7925a0d`. The after view shows the assistant welcome bubble, the submitted question, and the loading message directly beneath it.
+
+| Before KAN-45 loading changes | After KAN-45 loading changes |
+|---|---|
+| ![Before, the welcome placeholder remains visible during processing](screenshots/KAN-45_before_mobile.png) | ![After, the welcome bubble and submitted question appear above the loading message](screenshots/KAN-45_after_mobile.png) |
+
+The U01 recheck confirmed readable heading and welcome text. The U11 recheck found a 16 px input, aligned 44 px Send and Clear buttons, and no horizontal page overflow.

@@ -1,14 +1,21 @@
-"""KAN-39 safe offline UI checks; these do NOT exercise the real OpenAI API."""
+"""Offline tests for the branded FinWiseIQ chat."""
+
+import asyncio
+from threading import Event
+from unittest.mock import Mock
 
 import gradio as gr
 import pytest
+from gradio.state_holder import SessionState
 
 from app.finwiseiq_redesign import (
     ASSETS,
     CSS_FILE,
     EMPTY_MESSAGE,
     ERROR_MESSAGE,
+    LOADING_MESSAGE,
     SUGGESTIONS,
+    WELCOME_MESSAGE,
     build_app,
     get_logo_data_url,
     process_message,
@@ -145,12 +152,180 @@ def test_out_of_scope_refusal_retained():
 
 
 def test_clear_conversation():
-    assert reset_conversation() == ([], "")
+    assert reset_conversation() == ([{"role": "assistant", "content": WELCOME_MESSAGE}], "")
 
 
 def test_four_topic_chips():
     assert len(SUGGESTIONS) == 4
     assert all(s.endswith("?") for s in SUGGESTIONS)
+
+
+def _chat_event(demo, name):
+    return next(event for event in demo.config["dependencies"] if event["api_name"] == name)
+
+
+@pytest.mark.parametrize("control", ["fw-send", "fw-question", *SUGGESTIONS])
+def test_submission_shows_question_before_queued_answer(control):
+    response = "An answer with citations.\n\nSources:\n- BNM example"
+    backend = Mock(return_value=response)
+    demo = build_app(backend)
+    submit = _chat_event(demo, "show_question")
+    answer = _chat_event(demo, "show_answer")
+    button = next(
+        block for block in demo.blocks.values()
+        if getattr(block, "elem_id", None) == control
+        or (isinstance(block, gr.Button) and block.value == control)
+    )
+    trigger = "submit" if control == "fw-question" else "click"
+    assert (button._id, trigger) in submit["targets"]
+    assert submit["queue"] is False
+    assert answer["trigger_after"] == submit["id"]
+    assert answer["show_progress"] == "hidden"
+    assert demo.blocks[answer["inputs"][0]].stateful
+
+    typed = "  What is riba?  "
+    expected = control if control in SUGGESTIONS else typed.strip()
+    chatbot = demo.blocks[submit["outputs"][0]]
+    prior = chatbot.postprocess([
+        {"role": "user", "content": "Earlier question"},
+        {"role": "assistant", "content": "Earlier answer"},
+    ])
+
+    async def run_submission():
+        state = SessionState(demo)
+        started = await demo.process_api(
+            demo.fns[submit["id"]], [typed, prior.model_dump(), None],
+            state=state, event_data=gr.EventData(button, None),
+        )
+        messages, text = started["data"]
+        assert text == ""
+        assert [(message["role"], message["content"][0]["text"]) for message in messages[-2:]] == [
+            ("user", expected),
+            ("assistant", LOADING_MESSAGE),
+        ]
+        backend.assert_not_called()
+
+        finished = await demo.process_api(demo.fns[answer["id"]], [None], state=state)
+        final_messages = finished["data"][0]
+        assert final_messages[:-1] == messages[:-1]
+        assert final_messages[-1]["role"] == "assistant"
+        assert final_messages[-1]["content"][0]["text"] == response
+        backend.assert_called_once_with(expected, chatbot.preprocess(prior))
+
+    asyncio.run(run_submission())
+
+
+def test_clear_discards_a_pending_answer_and_allows_another_question():
+    started = Event()
+    release = Event()
+
+    def respond(question, history):
+        if question == "Pending question":
+            started.set()
+            assert release.wait(10)
+        return "Response to " + question
+
+    demo = build_app(respond)
+    submit = _chat_event(demo, "show_question")
+    answer = _chat_event(demo, "show_answer")
+    clear = _chat_event(demo, "clear_chat")
+    cancel = next(event for event in demo.config["dependencies"] if event["cancels"])
+    assert cancel["targets"] == clear["targets"]
+    assert cancel["cancels"] == [answer["id"]]
+    send = next(block for block in demo.blocks.values() if getattr(block, "elem_id", None) == "fw-send")
+
+    async def run_clear():
+        state = SessionState(demo)
+
+        async def send_question(question, history=None):
+            return await demo.process_api(
+                demo.fns[submit["id"]], [question, history or [], None],
+                state=state, event_data=gr.EventData(send, None),
+            )
+
+        await send_question("Pending question")
+        pending = asyncio.create_task(
+            demo.process_api(demo.fns[answer["id"]], [None], state=state)
+        )
+        try:
+            assert await asyncio.to_thread(started.wait, 5)
+            skipped = await send_question("Second click")
+            assert skipped["data"] == [gr.skip(), gr.skip()]
+            duplicate = await demo.process_api(demo.fns[answer["id"]], [None], state=state)
+            assert duplicate["data"] == [gr.skip()]
+            cleared = await demo.process_api(demo.fns[clear["id"]], [None], state=state)
+            messages, field = cleared["data"]
+            assert field == ""
+            assert len(messages) == 1
+            assert messages[0]["role"] == "assistant"
+            assert messages[0]["content"][0]["text"] == WELCOME_MESSAGE
+            await send_question("Fresh question", messages)
+        finally:
+            release.set()
+
+        assert (await pending)["data"] == [gr.skip()]
+        fresh = await demo.process_api(demo.fns[answer["id"]], [None], state=state)
+        assert [message["content"][0]["text"] for message in fresh["data"][0]] == [
+            WELCOME_MESSAGE, "Fresh question", "Response to Fresh question"
+        ]
+
+    asyncio.run(run_clear())
+
+
+def test_welcome_and_clear_leave_no_backend_history(monkeypatch):
+    from src import pipeline
+
+    first_question = "What is Murabahah?"
+    review_row = {
+        "question": first_question,
+        "answer": "Murabahah is a cost-plus sale.",
+        "source": "BNM example",
+        "source_section": "paragraph 1",
+    }
+    retrieve = Mock(side_effect=lambda query: [review_row] if first_question in query else [])
+    generate = Mock(return_value=review_row["answer"])
+    monkeypatch.setattr(pipeline, "retrieve_context", retrieve)
+    monkeypatch.setattr(pipeline.model, "generate_answer", generate)
+    demo = build_app()
+    submit = _chat_event(demo, "show_question")
+    answer = _chat_event(demo, "show_answer")
+    clear = _chat_event(demo, "clear_chat")
+    chatbot = demo.blocks[submit["outputs"][0]]
+    initial = chatbot.get_config()["value"]
+    assert [(msg["role"], msg["content"][0]["text"]) for msg in initial] == [
+        ("assistant", WELCOME_MESSAGE)
+    ]
+
+    async def run_welcome_and_clear():
+        state = SessionState(demo)
+        event = gr.EventData(demo.blocks[submit["targets"][0][0]], None)
+
+        async def turn(question, history):
+            await demo.process_api(
+                demo.fns[submit["id"]], [question, history, None], state=state, event_data=event,
+            )
+            reply = await demo.process_api(demo.fns[answer["id"]], [None], state=state)
+            return reply["data"][0]
+
+        history = await turn(first_question, initial)
+        assert "Sources:" in history[-1]["content"][0]["text"]
+        assert generate.call_args.args[0] == first_question
+        history = await turn("Tell me more", history)
+        prompt = generate.call_args.args[0]
+        assert "User: " + first_question in prompt
+        assert WELCOME_MESSAGE not in prompt
+        assert LOADING_MESSAGE not in prompt
+
+        cleared = await demo.process_api(demo.fns[clear["id"]], [None], state=state)
+        assert cleared["data"] == [initial, ""]
+        retrieve.reset_mock()
+        generate.reset_mock()
+        fresh = await turn("Tell me more", cleared["data"][0])
+        assert fresh[-1]["content"][0]["text"] == pipeline.FALLBACK_MESSAGE
+        retrieve.assert_called_once_with("Tell me more")
+        generate.assert_not_called()
+
+    asyncio.run(run_welcome_and_clear())
 
 
 def test_logo_and_css_assets_exist():
