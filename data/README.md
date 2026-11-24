@@ -4,9 +4,9 @@ This folder holds the custom question–answer dataset that FinWiseIQ retrieves 
 
 ## Files
 
-| File                    | What it is                     |
-| ----------------------- | ------------------------------ |
-| `finwiseiq_dataset.csv` | 50 Q&A pairs (10 per category) |
+| File                    | What it is                       |
+| ----------------------- | -------------------------------- |
+| `finwiseiq_dataset.csv` | 55 Q&A pairs across 5 categories |
 
 ## Columns
 
@@ -24,15 +24,15 @@ This folder holds the custom question–answer dataset that FinWiseIQ retrieves 
 
 | Prefix | Category                                 | Pairs |
 | ------ | ---------------------------------------- | ----- |
-| IFF    | Islamic Finance Fundamentals             | 10    |
-| IFC    | Islamic Financing Contracts              | 10    |
-| AML    | AML/CFT                                  | 10    |
+| IFF    | Islamic Finance Fundamentals             | 12    |
+| IFC    | Islamic Financing Contracts              | 11    |
+| AML    | AML/CFT                                  | 12    |
 | KYC    | KYC/CDD                                  | 10    |
 | REG    | Malaysian Financial Regulatory Framework | 10    |
 
 ## Where the data came from
 
-Answers are paraphrased summaries of official publications from Bank Negara Malaysia (BNM), the Islamic Financial Services Board (IFSB), the Financial Action Task Force (FATF), the Securities Commission Malaysia, and Malaysian legislation. No text is copied at length. The full list of sources, with links, is in [`docs/source_registry.md`](../docs/source_registry.md).
+Answers are paraphrased summaries of official publications from Bank Negara Malaysia (BNM), the Islamic Financial Services Board (IFSB), the Financial Action Task Force (FATF), the Securities Commission Malaysia, the United Nations Office on Drugs and Crime (UNODC), Malaysian legislation, and one academic case commentary. No text is copied at length. The full list of sources, with links, is in [`docs/source_registry.md`](../docs/source_registry.md).
 
 ## Data rules followed
 
