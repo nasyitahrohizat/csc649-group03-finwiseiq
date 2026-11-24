@@ -94,12 +94,93 @@ def refers_back(question: str) -> bool:
 
 
 def last_topic_question(history: list[dict] | None) -> str:
-    """The user's last real question, skipping follow-ups such as "tell me more"."""
+    """The user's last question that got a real answer (one with sources).
+
+    Skips follow-ups ("tell me more") and chit-chat that only got the
+    fallback or a greeting ("oh ok", "hi"), so they never replace the topic.
+    """
+    messages = [m for m in (history or []) if isinstance(m, dict)]
+    for i in range(len(messages) - 1, -1, -1):
+        if messages[i].get("role") != "user":
+            continue
+        text = _message_text(messages[i].get("content")).strip()
+        reply = messages[i + 1] if i + 1 < len(messages) else {}
+        answered = "\n\nSources:" in _message_text(reply.get("content"))
+        if text and answered and not is_follow_up(text):
+            return text
+    return ""
+
+# Short replies like "oh ok" or "thanks" are small talk, not questions.
+ACKNOWLEDGEMENTS = {"ok", "okay", "oh ok", "oh okay", "i see", "oh i see", "got it",
+                    "noted", "alright", "cool", "nice", "great"}
+ACKNOWLEDGEMENTS_MS = {"baik", "baiklah", "faham", "oh faham", "ok faham", "oh baru faham"}
+THANKS = {"thanks", "thank you", "thank you so much", "thanks a lot", "thx", "tq", "tqvm"}
+THANKS_MS = {"terima kasih", "terima kasih banyak", "ribuan terima kasih"}
+GOODBYES = {"bye", "bye bye", "goodbye"}
+GOODBYES_MS = {"selamat tinggal", "jumpa lagi"}
+# Thinking sounds of any length: "hmm", "hmmmm", "umm", "erm", "uh".
+HESITATION = re.compile(r"h+m+|u+m+|e+r+m*|u+h+")
+
+
+# Common Malay words, used to tell if the user has been writing in Malay.
+MALAY_WORDS = {
+    "apa", "itu", "ini", "tu", "ni", "adalah", "ialah", "boleh", "saya", "aku",
+    "macam", "mana", "bagaimana", "kenapa", "mengapa", "maksud", "dalam", "untuk",
+    "dengan", "yang", "tak", "tidak", "nak", "ada", "dan", "atau", "bagi", "kah",
+    "terangkan", "jelaskan", "lagi", "contoh", "faham", "baik", "kewangan",
+    "hai", "salam", "assalamualaikum", "terima", "kasih", "selamat", "jumpa",
+}
+
+
+def conversation_is_malay(history: list[dict] | None) -> bool:
+    """True if the user's last real message (not just "hmm") was in Malay."""
     for msg in reversed(history or []):
         if isinstance(msg, dict) and msg.get("role") == "user":
-            text = _message_text(msg.get("content")).strip()
-            if text and not is_follow_up(text):
-                return text
+            words = [w for w in _words(_message_text(msg.get("content")))
+                     if not HESITATION.fullmatch(w)]
+            if words:
+                return bool(set(words) & MALAY_WORDS)
+    return False
+
+def small_talk_reply(question: str, history: list[dict] | None = None) -> str:
+    """A friendly reply to "oh ok", "thanks" or "bye"; "" if it is not small talk.
+
+    The reply has no sources, so last_topic_question() skips it and a later
+    "tell me more" still refers to the last real question.
+    """
+    words = _words(question)
+    # Drop thinking sounds, so "hmm ok" is treated like "ok".
+    text = " ".join(w for w in words if not HESITATION.fullmatch(w))
+    has_topic = bool(last_topic_question(history))
+        # "ok", "hmm", "tq" and "bye" are used in both languages, so they get
+    # a Malay reply if the user has been writing in Malay.
+    malay = conversation_is_malay(history)
+    if words and not text:  # only thinking sounds, e.g. "hmm" or "umm"
+        if malay:
+            if has_topic:
+                return ("Tak apa, ambil masa anda! 😊 Kalau ada yang kurang jelas, "
+                        'taip "terangkan lagi" atau "contoh".')
+            return ("Tak apa, ambil masa anda! 😊 Anda boleh tanya soalan seperti "
+                    '"Apa itu murabahah?"')
+        if has_topic:
+            return ("No worries, take your time! 😊 If something wasn't clear, "
+                    'say "tell me more" or "explain it more simply".')
+        return ("No worries, take your time! 😊 You can ask me things like "
+                '"What is murabahah?" or "What is customer due diligence?"')
+    if text in ACKNOWLEDGEMENTS_MS or (text in ACKNOWLEDGEMENTS and malay):
+        more = ' Atau taip "terangkan lagi" untuk penjelasan lanjut.' if has_topic else ""
+        return "Baik! 😊 Ada apa-apa lagi yang boleh saya bantu?" + more
+    if text in ACKNOWLEDGEMENTS:
+        more = ' Or say "tell me more" and I\'ll explain further.' if has_topic else ""
+        return "Glad that helps! 😊 Is there anything else I can help you with?" + more
+    if text in THANKS_MS or (text in THANKS and malay):
+        return "Sama-sama! 😊 Tanya sahaja jika ada soalan lain."
+    if text in THANKS:
+        return "You're welcome! 😊 Feel free to ask if you have any other questions."
+    if text in GOODBYES_MS or (text in GOODBYES and malay):
+        return "Selamat tinggal! 👋 Terima kasih kerana menggunakan FinWiseIQ."
+    if text in GOODBYES:
+        return "Goodbye! 👋 Thanks for using FinWiseIQ. Come back anytime."
     return ""
 
 
@@ -121,6 +202,10 @@ def process_question(question: str, history: list[dict] | None = None) -> str:
     if not question or not question.strip():
         return EMPTY_MESSAGE
     question = question.strip()
+
+    reply = small_talk_reply(question, history)
+    if reply:
+        return reply  # small talk: no search and no OpenAI call
 
     results = retrieve_context(question)
     topic = last_topic_question(history)
