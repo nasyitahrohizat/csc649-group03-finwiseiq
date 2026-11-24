@@ -60,6 +60,15 @@ def process_message(message: str, history: list[dict] | None, responder: Callabl
     safe_history = list(history or [])
     question = (message or "").strip()
     if not question:
+        if safe_history and safe_history[-1]["role"] == "assistant":
+            last_content = safe_history[-1]["content"]
+            # Gradio returns previously rendered text as a list of content blocks.
+            if isinstance(last_content, list) and len(last_content) == 1:
+                block = last_content[0]
+                if block.get("type") == "text":
+                    last_content = block.get("text")
+            if last_content == EMPTY_MESSAGE:
+                return safe_history, ""
         return safe_history + [{"role": "assistant", "content": EMPTY_MESSAGE}], ""
 
     greeting = " ".join(question.casefold().strip("!?., ").split())
