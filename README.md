@@ -180,7 +180,7 @@ flowchart TD
 | #   | Component          | File                                  | Responsibility                                                                                                                                                                                                                                                |
 | --- | ------------------ | ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 1   | User               | –                                     | Asks a question in natural language.                                                                                                                                                                                                                          |
-| 2   | Frontend (Gradio)  | `app/finwiseiq_redesign.py`, `app/interface.py` | Accepts input and displays the response. The branded UI passes each question to `respond()`, and `respond()` calls `get_backend_answer()`, which calls `process_question()`. Catches any unexpected error and shows a friendly message.                                                                               |
+| 2   | Frontend (Gradio)  | `app/finwiseiq_redesign.py`, `app/interface.py` | Displays responses and passes questions and chat history through `respond()` and `get_backend_answer()` to `process_question()`. Handles greetings locally and shows friendly errors. |
 | 3   | Query processing   | `app/finwiseiq_redesign.py`, `app/interface.py`, `src/pipeline.py` | Trims whitespace and rejects empty input with a short prompt to type a question, without calling the backend.                                                                                                                                                                                         |
 | 4   | Embedding model    | `src/retrieval.py`                    | Converts the user's question into a normalised vector using `all-MiniLM-L6-v2`.                                                                                                                                                                               |
 | 5   | Semantic retrieval | `src/retrieval.py`                    | `retrieve_context()` compares the query vector with the cached dataset question vectors and ranks them by cosine similarity.                                                                                                                                  |
@@ -471,21 +471,20 @@ csc649-group03-finwiseiq/
 
 ### Automated tests
 
-The test suite has **47 tests** and runs without an API key, because OpenAI (and, for interface tests, the backend) are replaced with mocks:
+The test suite has **68 tests** and runs without an API key. The tests mock OpenAI calls and backend calls where needed.
 
 | File                      | Tests | What is checked                                                                                                                                                     |
 | ------------------------- | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `tests/test_retrieval.py` | 5     | Dataset loads with all columns; a missing column raises an error; relevant questions return sorted matches; off-topic and empty questions return nothing            |
 | `tests/test_model.py`     | 12    | Context-grounded generation; input validation; timeout, authentication, rate-limit, connection and other API errors; key redaction in logs; empty responses         |
-| `tests/test_pipeline.py`  | 5     | Empty question; off-topic fallback without calling OpenAI; context passed and sources appended; API failure returns a friendly message; context blocks are numbered |
-| `tests/test_interface.py` | 12    | Empty/invalid input; response display; chat history; backend exceptions; empty/invalid backend replies                                                              |
-| `tests/test_finwiseiq_redesign.py` | 13 | Branded UI: answers and citations shown unchanged; trimmed and empty input; history kept in order; errors hidden from users; Clear button; suggested questions; logo, mobile and reduced-motion CSS |
+| `tests/test_pipeline.py`  | 14    | Input validation, retrieval and citations, off-topic fallback, API error handling, follow-up retrieval, and history limits |
+| `tests/test_interface.py` | 13    | Input validation, response display, Gradio history forwarding, local greetings, backend exceptions, and invalid replies |
+| `tests/test_finwiseiq_redesign.py` | 24 | Branded UI response rendering, local greetings, repeated blank-input handling, Clear, suggested questions, assets, mobile layout, and reduced motion |
 
-Run them with:
+Run them from the project folder.
 
 ```powershell
-.\.venv\Scripts\Activate.ps1
-python -m pytest
+.\.venv\Scripts\python.exe -m pytest -q
 ```
 
 The same tests run automatically on every pull request through GitHub Actions, and a pull request cannot be merged into `main` unless they pass.
@@ -533,6 +532,8 @@ The two out-of-scope questions that pass the threshold (T19 Shariah certificatio
 **Gradio interface** (24 November 2026, KAN-35): through the running app, the Murabahah and customer due diligence questions returned answers with sources, off-topic questions returned the fallback, and empty input returned "Please type a question."
 
 **Usability testing** (24 November 2026, KAN-39, [docs/KAN-39_Gradio_Usability_Test_Report.md](docs/KAN-39_Gradio_Usability_Test_Report.md)): 12 manual scenarios on the branded interface with the real backend (U01–U12: answers with sources, Send button and Enter key, suggested questions, empty input, out-of-scope refusal, chat history, Clear, API error, 390 px mobile width, keyboard and reduced motion). All 12 passed; three had minor notes: low contrast in the welcome text, limited mobile input spacing, and follow-up questions not using earlier chat context. Screenshots are in `docs/screenshots/`. The time-on-task values in the report are estimates, not stopwatch measurements.
+
+The later frontend polish improved contrast, mobile spacing, and keyboard focus. [Frontend polish verification](docs/frontend_test_results.md#frontend-ui-polish-verification)
 
 **End-to-end evaluation** (24 November 2026, KAN-40, re-run after the KAN-38 dataset update, [docs/end_to_end_evaluation.md](docs/end_to_end_evaluation.md), reproduce with `python -m tests.evaluate_end_to_end`): all 20 test questions were run through the full pipeline with the real OpenAI API and judged on the five dimensions.
 
@@ -605,7 +606,7 @@ git log --all --format="%ad  %an  %s" --date=short
 - **A single threshold is a trade-off.** 0.45 was calibrated on 20 test questions. It may wrongly refuse some valid questions and accept some unrelated ones, and should be re-calibrated whenever the dataset changes significantly.
 - **Questions are matched, not answers.** Only dataset _questions_ are embedded. A user question that matches the content of an answer but not the wording of its question may be missed.
 - **Short answers can skip details.** For short questions the model sometimes leaves out a relevant fact that is in the retrieved context (T13, T14 in the end-to-end evaluation).
-- **No conversation memory.** Each question is answered on its own; follow-ups such as "tell me more" do not use earlier turns.
+- **Limited conversation memory.** Some follow-ups reuse an earlier topic. When the pipeline uses history, the OpenAI prompt can include up to six previous messages. Ambiguous wording, intervening greetings, or refused questions can lead to a fallback or the wrong topic.
 - **LLM hallucination.** Even with context injection and a strict system prompt, the LLM can still add unsupported details or misread the context.
 - **Outdated sources.** Regulations and standards are revised over time. Answers can become outdated if the dataset is not reviewed against newer versions.
 - **External API dependence and cost.** The chatbot depends on the OpenAI API being available. Rate limits, quotas, latency, usage charges and model deprecations are outside the team's control.
@@ -618,8 +619,7 @@ git log --all --format="%ad  %an  %s" --date=short
 
 - Refine the similarity threshold: for example, separate thresholds per category, or a re-ranking step that checks whether each retrieved answer actually addresses the question.
 - Embed answers as well as questions, or combine semantic and keyword search (hybrid retrieval).
-- Add multi-turn conversation history (confirmed as a limitation in usability test U08).
-- Improve welcome-text contrast and mobile input spacing (KAN-39 usability findings).
+- Improve follow-up detection and preserve the finance topic across greetings and refusals.
 - Expand the dataset further (e.g. _zakat_; _takaful_ and _sukuk_ were added in KAN-38) and add a scheduled review against new versions of the source documents.
 - Retrieve directly from chunks of the source documents rather than only from a hand-written Q&A dataset.
 - Compare other embedding models, including multilingual ones, for Malay and Arabic terms.
@@ -679,4 +679,4 @@ BNM policy documents are copyrighted by BNM. The dataset only paraphrases short 
 
 ---
 
-_Last updated 24 November 2026, after the KAN-38 dataset update, the re-run of both evaluations and the KAN-39 interface redesign. Re-run both evaluation scripts and update Section 12 if the dataset changes._
+_Last updated 25 November 2026 after integrating the frontend polish and chat memory. The evaluation results reflect the 24 November reruns after the KAN-38 dataset update. Re-run both evaluation scripts and update Section 12 if the dataset changes._
