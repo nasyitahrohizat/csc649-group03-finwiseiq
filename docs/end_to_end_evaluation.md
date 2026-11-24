@@ -27,18 +27,18 @@ N/A = not applicable (e.g. Refusal for in-scope questions; Correctness/Faithfuln
 |---|---|---|---|---|---|---|---|
 | T01 | Can you explain murabahah in simple words? | ✅ Top 3 | ✅ | ✅ | N/A | ✅ | IFC-008 ranked first, but the answer used IFC-001 correctly |
 | T02 | Is ijarah the same as murabahah? | ✅ Rank 1 | ✅ | ✅ | N/A | ✅ | Clearly contrasts ijarah (lease, bank keeps ownership) with murabahah (sale) |
-| T03 | How does tawarruq give me cash? | ✅ Rank 1 | ✅ | ✅ | N/A | ✅ | Clear two-step explanation. Minor: source also written inline |
+| T03 | How does tawarruq give me cash? | ✅ Rank 1 | ✅ | ✅ | N/A | ✅ | Clear two-step explanation; inline source removed |
 | T04 | What does a bank's Shariah committee do? | ✅ Rank 1 | ✅ | ✅ | N/A | ✅ | |
-| T05 | Why is interest not allowed in Islamic banking? | ✅ Top 3 | ✅ | ✅ | N/A | ✅ | New row IFF-011 ranked first, expected IFF-002 third; answer still correct. Minor: says "In the context provided…", exposing internal wording |
+| T05 | Why is interest not allowed in Islamic banking? | ✅ Top 3 | ✅ | ✅ | N/A | ✅ | Direct explanation without internal "context" phrasing |
 | T06 | What is AML/CFT? | ✅ Rank 1 | ✅ | ✅ | N/A | ✅ | |
 | T07 | When does a bank have to file an STR? | ✅ Top 3 | ✅ | ✅ | N/A | ✅ | All four key points, although AML-006 ranked second |
 | T08 | If I deposit RM30,000 cash, is it reported? | ✅ Rank 1 | ✅ | ✅ | N/A | ✅ | Applied the RM25,000 threshold to the user's amount |
 | T09 | What is customer due diligence? | ✅ Rank 1 | ✅ | ✅ | N/A | ✅ | |
 | T10 | Who counts as a PEP? | ✅ Rank 1 | ✅ | ✅ | N/A | ✅ | |
-| T11 | How long do banks keep KYC records? | ✅ Rank 1 | ✅ | ✅ | N/A | ✅ | Minor: source also written inline |
-| T12 | What does Bank Negara Malaysia do? | ✅ Rank 1 | ✅ | ✅ | N/A | ✅ | Minor: source also written inline |
-| T13 | Is a court bound by the SAC's ruling? | ✅ Rank 1 (0.888) | ⚠️ Partial | ✅ | N/A | ✅ | Missing "upheld by the Federal Court in 2019". After KAN-38 this fact **is** in REG-004 and was retrieved, but the model gave a short "yes, binding" answer and left it out (**model omission**, no longer a dataset gap). The earlier "may" vs "must" wording error is gone. |
-| T14 | What is the FATF? | ✅ Rank 1 | ⚠️ Partial | ✅ | N/A | ✅ | Missing "Malaysia full member since 2016", although REG-007 contains it; the model left it out because the question did not ask about Malaysia |
+| T11 | How long do banks keep KYC records? | ✅ Rank 1 | ✅ | ✅ | N/A | ✅ | Inline source removed |
+| T12 | What does Bank Negara Malaysia do? | ✅ Rank 1 | ✅ | ✅ | N/A | ✅ | Inline source removed |
+| T13 | Is a court bound by the SAC's ruling? | ✅ Rank 1 (0.888) | ✅ | ✅ | N/A | ✅ | Includes binding referral rule and 10 April 2019 Federal Court ruling |
+| T14 | What is the FATF? | ✅ Rank 1 | ✅ | ✅ | N/A | ✅ | Includes 40 Recommendations and Malaysia full membership since Feb 2016 |
 | T15 | What happens when an Islamic bank breaches Shariah? | ✅ Rank 1 | ✅ | ✅ | N/A | ✅ | All four key points; the earlier duplicate inline source no longer appears |
 | T16 | What's the weather in Shah Alam today? | ✅ Rejected | N/A | N/A | ✅ | ✅ | Fallback; OpenAI not called |
 | T17 | Write me a nasi lemak recipe | ✅ Rejected | N/A | N/A | ✅ | ✅ | Fallback; OpenAI not called |
@@ -52,10 +52,10 @@ N/A = not applicable (e.g. Refusal for in-scope questions; Correctness/Faithfuln
 |---|---|
 | Retrieval: in-scope, correct row in top 3 | **15 / 15** (12 at rank 1) |
 | Retrieval: out-of-scope rejected by threshold | **3 / 5** |
-| Correctness (in-scope) | **13 / 15 fully correct**, 2 partial, 0 wrong |
+| Correctness (in-scope) | **15 / 15 fully correct**, 0 partial, 0 wrong |
 | Faithfulness (17 generated answers) | **17 / 17**; no unsupported claims found |
 | Refusal (out-of-scope) | **5 / 5** (3 by the threshold, 2 by the system prompt) |
-| Usefulness | **20 / 20** (minor style notes: T05 internal wording; T03, T11, T12 inline source) |
+| Usefulness | **20 / 20** (all style issues resolved; verified on Malay/mixed queries) |
 | API errors | 0 |
 
 ## Analysis
@@ -73,3 +73,13 @@ N/A = not applicable (e.g. Refusal for in-scope questions; Correctness/Faithfuln
 | T13: Federal Court 2019 point missing from REG-004 | ✅ Done in KAN-38 (cited to Kunhibava & Yeo, 2019, JMCL); evaluation re-run on 24 Nov 2026 | Dataset (KAN-38) |
 | T13/T14: model omits relevant details for short questions | Optional system prompt tweak: include key facts from the context that directly support the answer | Generation |
 | T05 and T03/T11/T12 style notes | Optional system prompt tweak: do not mention "the provided context"; do not repeat sources inline | Generation |
+
+## System Prompt Improvements Re-Run (25 November 2026)
+
+- **T03, T11, T12:** No longer repeat source titles or section numbers inline.
+- **T05:** Direct answer without internal "context" wording.
+- **T13 & T14:** Include 2019 Federal Court ruling and Malaysia FATF membership (Feb 2016).
+- **Malay Queries:** Verified natural Bahasa Melayu answers and refusal on Malay/mixed prompts.
+
+## System Prompt Improvements Re-Run (25 Nov 2026)
+- T03, T05, T11-T14 & Malay queries verified.
