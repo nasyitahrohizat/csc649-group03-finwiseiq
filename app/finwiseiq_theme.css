@@ -98,8 +98,25 @@ body { background: #081429 !important; }
  .fw-brand strong { font-size:20px; }
  .fw-live { padding:8px 10px; }
  .fw-hero { border-radius:17px; }
- #fw-chat-shell { padding:10px !important; border-radius:16px !important; }
+ #fw-chat-shell { padding:14px !important; border-radius:16px !important; }
  .fw-section-caption small { display:none; }
+ #fw-chatbox .placeholder-content p { font-size: 16px; }
+ #fw-composer {
+   display: grid !important;
+   grid-template-columns: repeat(2, minmax(0, 1fr));
+   gap: 10px;
+ }
+ #fw-question { grid-column: 1 / -1; }
+ #fw-question textarea, #fw-question input {
+   min-height: 48px;
+   font-size: 16px;
+   line-height: 1.45;
+ }
+ #fw-send, #fw-clear {
+   min-width: 0 !important;
+   min-height: 44px;
+ }
+ .fw-suggestions button, .fw-footer-text { font-size: 14px; }
 }
 @media (prefers-reduced-motion:reduce) {
  .fw-live .fw-dot, #fw-chatbox .message { animation:none !important; }

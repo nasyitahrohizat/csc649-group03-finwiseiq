@@ -126,7 +126,7 @@ def build_app(responder: Callable | None = None) -> gr.Blocks:
                 placeholder="Welcome to FinWiseIQ. Choose a suggested topic or type your question below.",
                 buttons=["copy"],
             )
-            with gr.Row(equal_height=True):
+            with gr.Row(equal_height=True, elem_id="fw-composer"):
                 query = gr.Textbox(
                     show_label=False,
                     placeholder="Ask about Islamic finance or Malaysian financial compliance...",
