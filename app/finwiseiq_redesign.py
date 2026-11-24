@@ -114,7 +114,7 @@ def build_app(responder: Callable | None = None) -> gr.Blocks:
         )
         with gr.Column(elem_id="fw-chat-shell"):
             gr.HTML(
-                '''<div class="fw-section-caption"><span>✦ Ask FinWiseIQ</span>
+                '''<div class="fw-section-caption"><h2>✦ Ask FinWiseIQ</h2>
                 <small>Explore • Ask • Learn</small></div>''',
                 container=False,
             )

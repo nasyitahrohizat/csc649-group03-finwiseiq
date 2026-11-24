@@ -38,8 +38,16 @@ body { background: #081429 !important; }
 .fw-tags span { padding:7px 12px; background:rgba(255,255,255,.07); border:1px solid rgba(174,219,225,.15); color:#dcebe8; font-size:12px; border-radius:100px; }
 #fw-chat-shell { border:1px solid var(--fw-border) !important; padding:18px !important; border-radius:24px !important; background:rgba(15,32,53,.93) !important; box-shadow:0 18px 55px rgba(0,0,0,.14); }
 .fw-section-caption { display:flex; align-items:center; justify-content:space-between; color:#fff; font-weight:750; margin:2px 0 14px; font-size:14px; }
+#fw-chat-shell .fw-section-caption h2 {
+  margin: 0;
+  color: var(--fw-ink);
+  font: inherit;
+}
 .fw-section-caption small { color:#93b7bb; font-size:11px; font-weight:600; }
 #fw-chatbox { border:1px solid rgba(139,179,200,.22); border-radius:17px !important; background:rgba(5,18,34,.80) !important; }
+#fw-chatbox .placeholder-content p {
+  color: var(--fw-muted);
+}
 #fw-chatbox .message { animation:fw-rise .32s both; }
 #fw-chatbox .message.bot, #fw-chatbox .message.assistant { border:1px solid rgba(77,160,162,.18); }
 #fw-chatbox .message.user { border:1px solid rgba(38,207,180,.2); }
