@@ -95,3 +95,17 @@ def test_off_topic_message_after_a_question_still_gets_fallback(monkeypatch):
     # Not a follow-up, so it is NOT searched again with the previous question.
     assert searched == ["Write me a nasi lemak recipe"]
     assert out == pipeline.FALLBACK_MESSAGE
+
+def test_earlier_messages_are_sent_to_openai_without_sources(monkeypatch):
+    seen = {}
+
+    def fake_generate(question, context):
+        seen["question"] = question
+        return "Fake answer."
+
+    monkeypatch.setattr(model, "generate_answer", fake_generate, raising=False)
+    pipeline.process_question("How is it different from ijarah?", HISTORY)
+    assert "User: What is murabahah?" in seen["question"]
+    assert "FinWiseIQ: A cost-plus sale." in seen["question"]
+    assert "CURRENT QUESTION:\nHow is it different from ijarah?" in seen["question"]
+    assert "Sources:" not in seen["question"]

@@ -43,6 +43,8 @@ def format_sources(results: list[dict]) -> str:
             sources.append(s)
     return "\n".join(f"- {s}" for s in sources)
 
+MAX_HISTORY_MESSAGES = 10  # the last 3 questions and 3 answers
+MAX_MESSAGE_CHARS = 500   # keep each earlier message short
 
 # Words that show a message refers back to the earlier question
 # (English and Malay), e.g. "tell me more", "give an example", "terangkan lagi".
@@ -63,6 +65,17 @@ def _message_text(content) -> str:
         )
     return ""
 
+def format_history(history: list[dict] | None) -> str:
+    """Turn the last few chat messages into short text for OpenAI (sources removed)."""
+    lines = []
+    for msg in (history or [])[-MAX_HISTORY_MESSAGES:]:
+        if not isinstance(msg, dict) or msg.get("role") not in ("user", "assistant"):
+            continue
+        text = _message_text(msg.get("content")).split("\n\nSources:")[0].strip()
+        if text:
+            speaker = "User" if msg["role"] == "user" else "FinWiseIQ"
+            lines.append(f"{speaker}: {text[:MAX_MESSAGE_CHARS]}")
+    return "\n".join(lines)
 
 def last_user_question(history: list[dict] | None) -> str:
     """The user's previous question, used when a follow-up is too vague to search alone."""
@@ -96,8 +109,16 @@ def process_question(question: str, history: list[dict] | None = None) -> str:
         return FALLBACK_MESSAGE  # off-topic: OpenAI is NOT called
 
     context = format_context(results)
+    conversation = format_history(history)
+    if conversation:
+        question_for_model = (
+            f"CONVERSATION SO FAR:\n{conversation}\n\nCURRENT QUESTION:\n{question}"
+        )
+    else:
+        question_for_model = question
+
     try:
-        answer = model.generate_answer(question, context)
+        answer = model.generate_answer(question_for_model, context)
     except Exception as exc:  # API failure, timeout, missing key, etc.
         logger.warning("Answer generation failed: %s", type(exc).__name__)
         return ERROR_MESSAGE
