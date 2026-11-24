@@ -1,4 +1,3 @@
-import gradio as gr
 
 from src.pipeline import process_question
 
@@ -22,32 +21,3 @@ def respond(message, history):
 
     except Exception:
         return "Sorry, something went wrong. Please try again later."
-
-
-demo = gr.ChatInterface(
-    fn=respond,
-    show_progress="full",
-    title="FinWiseIQ",
-    examples=[
-        "What is Murabahah financing?",
-        "What is Islamic banking?",
-        "What is Shariah-compliant financing?",
-        "What is the difference between Islamic and conventional banking?"
-
-    ],
-    textbox=gr.Textbox(
-        placeholder="Ask a question about Islamic finance or Malaysian financial compliance...",
-        lines=1,
-        max_lines=3,
-    ),
-    description=(
-        "An AI-powered Islamic Finance and Malaysian Financial "
-        "Compliance Assistant.\n\n"
-        "Educational information only. Not professional financial, "
-        "legal, regulatory or Shariah advice."
-    ),
-)
-
-
-if __name__ == "__main__":
-    demo.launch()
