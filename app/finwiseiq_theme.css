@@ -77,9 +77,13 @@ body { background: #081429 !important; }
   white-space: pre-wrap;
 }
 #fw-question { min-width: 0; }
+#fw-question label span { color: var(--fw-ink); }
 #fw-question textarea, #fw-question input { background:#0a2137 !important; color:#fff !important; border:1px solid rgba(149,190,209,.29) !important; border-radius:13px !important; padding:12px 14px !important; }
 #fw-question textarea::placeholder, #fw-question input::placeholder { color:#b0c2cd !important; opacity:1; }
-#fw-question textarea:focus, #fw-question input:focus { outline:2px solid rgba(33,218,185,.45) !important; }
+#fw-chat-shell :is(textarea, input, button, a):focus-visible {
+  outline: 3px solid var(--fw-gold) !important;
+  outline-offset: 3px;
+}
 #fw-send { background:linear-gradient(115deg,#27d9bf,#0daaaf) !important; color:#052439 !important; font-weight:800 !important; border:0 !important; border-radius:12px !important; box-shadow:0 8px 23px rgba(17,197,186,.2); transition:transform .2s ease, box-shadow .2s ease; }
 #fw-send:hover { transform:translateY(-2px); box-shadow:0 12px 28px rgba(17,197,186,.36); }
 #fw-clear { border-radius:12px !important; background:rgba(255,255,255,.05) !important; border:1px solid var(--fw-border) !important; color:#b9d1dc !important; }

@@ -150,13 +150,13 @@ def build_app(responder: Callable | None = None) -> gr.Blocks:
             )
             with gr.Row(equal_height=True, elem_id="fw-composer"):
                 query = gr.Textbox(
-                    show_label=False,
+                    label="Your question",
                     placeholder="Ask about Islamic finance or Malaysian financial compliance...",
                     lines=1,
                     max_lines=3,
                     scale=8,
                     container=False,
-                    autofocus=True,
+                    html_attributes=gr.InputHTMLAttributes(enterkeyhint="send"),
                     elem_id="fw-question",
                 )
                 send = gr.Button("Send ↗", variant="primary", scale=1, min_width=95, elem_id="fw-send")
