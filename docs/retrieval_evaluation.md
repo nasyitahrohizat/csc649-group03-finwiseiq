@@ -73,8 +73,9 @@ are not sent to OpenAI.
   was AML-006 at 0.495, which a 0.5 threshold would have dropped.
 - **Re-check after KAN-38:** the new sukuk row IFC-011 raised the nasi lemak recipe
   question (T17) to 0.409. It is still rejected, and 0.45 still sits between the highest
-  off-topic score (0.409) and the lowest correct match (0.495), so the threshold is
-  unchanged. The margin on the off-topic side is now smaller (0.041 instead of 0.062),
+  score among the clearly off-topic questions T16–T18 (0.409) and the lowest correct
+  match (0.495), so the threshold is unchanged. (T19 and T20 are out of scope but sound
+  in-domain; they score 0.630 and 0.561 and pass the threshold, see the limitation below.) The margin on the off-topic side is now smaller (0.041 instead of 0.062),
   so the threshold should be re-checked whenever rows are added.
 - **Limitation:** T19 (Shariah certification) and T20 (US AML rules) sound in-domain, so
   they pass the threshold (0.630 and 0.561). Retrieval alone cannot reject them; the

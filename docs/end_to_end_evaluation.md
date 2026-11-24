@@ -26,7 +26,7 @@ N/A = not applicable (e.g. Refusal for in-scope questions; Correctness/Faithfuln
 | Test | Question | Retrieval | Correctness | Faithfulness | Refusal | Usefulness | Notes |
 |---|---|---|---|---|---|---|---|
 | T01 | Can you explain murabahah in simple words? | ✅ Top 3 | ✅ | ✅ | N/A | ✅ | IFC-008 ranked first, but the answer used IFC-001 correctly |
-| T02 | Is ijarah the same as murabahah? | ✅ Rank 1 | ✅ | ✅ | N/A | ✅ | Also mentions ijarah muntahiyah bittamlik (from IFC-008) |
+| T02 | Is ijarah the same as murabahah? | ✅ Rank 1 | ✅ | ✅ | N/A | ✅ | Clearly contrasts ijarah (lease, bank keeps ownership) with murabahah (sale) |
 | T03 | How does tawarruq give me cash? | ✅ Rank 1 | ✅ | ✅ | N/A | ✅ | Clear two-step explanation. Minor: source also written inline |
 | T04 | What does a bank's Shariah committee do? | ✅ Rank 1 | ✅ | ✅ | N/A | ✅ | |
 | T05 | Why is interest not allowed in Islamic banking? | ✅ Top 3 | ✅ | ✅ | N/A | ✅ | New row IFF-011 ranked first, expected IFF-002 third; answer still correct. Minor: says "In the context provided…", exposing internal wording |
@@ -62,9 +62,9 @@ N/A = not applicable (e.g. Refusal for in-scope questions; Correctness/Faithfuln
 
 - **Two-layer refusal works.** The retrieval evaluation (KAN-36) flagged T19 and T20 as a risk because they sound in-domain and pass the threshold. In the end-to-end run, the system prompt made the model refuse both. Obvious off-topic questions (T16–T18) never reached OpenAI.
 - **Grounding holds.** No answer added facts that were not in the retrieved rows. In the first run, before KAN-38, the model did not invent the then-missing Federal Court detail for T13, which is the intended behaviour.
-- **Retrieval near-misses did not hurt answers.** In T01, T05 and T07 the expected row was ranked second, but because all top-3 rows are sent as context, all three answers were still fully correct.
+- **Retrieval near-misses did not hurt answers.** In T01, T05 and T07 the expected row was not ranked first (second in T01 and T07, third in T05), but because all top-3 rows are sent as context, all three answers were still fully correct.
 - **Partial answers now point to generation, not the dataset.** KAN-38 added the Federal Court ruling to REG-004 and retrieval finds it (0.888), but T13 and T14 both show that the model answers a short question briefly and may skip relevant facts that are in the context.
-- **Dataset update did not change the totals.** Retrieval stayed 15 / 15 in the top 3 (12 at rank 1) and 3 / 5 out-of-scope rejected. The new sukuk row raised the recipe question (T17) to 0.409, still below the 0.45 threshold.
+- **Dataset update did not change the totals.** Retrieval stayed 15 / 15 in the top 3 (12 at rank 1) and 3 / 5 out-of-scope rejected. The new sukuk row raised the recipe question (T17) to 0.409, the highest score among the clearly off-topic questions (T16–T18), still below the 0.45 threshold.
 
 ## Follow-up actions
 

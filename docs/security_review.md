@@ -15,7 +15,7 @@
 | 5 | API key handled by the backend only | Reviewed `src/model.py`, `src/pipeline.py`, `app/interface.py` | ✅ The key is read only in `src/model.py`; it is never printed, returned or passed to Gradio. Users only see friendly error messages; logged errors pass through `_sanitize_error_text()`. See finding F1 (fixed). |
 | 6 | `main` is protected | GitHub ruleset "Protect Main" (active) | ✅ Pull request required with 1 approval; `tests` status check required; review conversations must be resolved; force-push and branch deletion blocked. |
 | 7 | Repository access and scanning | GitHub repository settings | ✅ Public repository; collaborators are the 4 team members only. Secret scanning, push protection and (after finding F2) Dependabot alerts are enabled. |
-| 8 | Gradio app not exposed publicly | Inspected `demo.launch()` in `app/interface.py` | ✅ No `share=True`; the app runs on `127.0.0.1` only. |
+| 8 | Gradio app not exposed publicly | Inspected `build_app().launch()` in `app/finwiseiq_redesign.py`, the only launcher since the old interface was removed (KAN-44) | ✅ No `share=True` and no `server_name`, so Gradio uses its defaults: local only (`127.0.0.1`) and no public link. `show_error=False` keeps error details out of the browser. |
 | 9 | Prompt injection | Manual test in the running app | ✅ See below. |
 | 10 | No personal data in the dataset | Scanned `data/finwiseiq_dataset.csv` for IC numbers, phone numbers, emails, 10+ digit account/card numbers, honorifics and capitalised name pairs | ✅ 0 matches. Capitalised pairs were institutions and terms only (e.g. *Bank Negara*, *Compliance Officer*). |
 
