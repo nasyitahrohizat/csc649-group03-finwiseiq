@@ -38,18 +38,19 @@ After PR #18 is merged into `main`, run the app with a legitimate `.env` on your
 | U11 | Browser at approximately 390px wide (mobile DevTools) | No horizontal page overflow; inputs and chips usable | At 390 × 844px, the logo, header, information cards, chat interface, Send and Clear buttons, and suggested questions remained accessible. No obvious horizontal overflow was observed. However, some text contrast and input spacing could be improved for mobile readability. | PASS (with minor UI issues) |
 | U12 | Use keyboard (Tab / Enter), and OS reduced-motion mode | Focus visible; input accessible; animation reduced | Keyboard navigation using Tab worked with visible focus indicators, and Enter successfully submitted a question. The interface remained usable with reduced-motion enabled, and non-essential animations were reduced. | PASS |
 
-## Time-on-task / observation fields
+## Time-on-task estimates
 
-Complete during testing, preferably with a teammate acting as a first-time user:
+The five timings below are suggested estimates. No stopwatch measurements were collected during the usability session.
 
-| UX indicator | Observation |
+| UX indicator | Estimated time |
 |---|---|
 | Find chat input without instructions | 5 seconds |
 | Submit one question successfully | 8 seconds (excluding API response time) |
 | Locate source / citation in reply | 6 seconds |
 | Identify that this is educational, not professional advice | 7 seconds |
 | Clear and restart a conversation | 4 seconds |
-| Confusing UI elements or suggested improvements | Low contrast in the welcome text and limited mobile input spacing. |
+
+Usability observations included low contrast in the welcome text and limited mobile input spacing.
 
 
 ## Evidence
