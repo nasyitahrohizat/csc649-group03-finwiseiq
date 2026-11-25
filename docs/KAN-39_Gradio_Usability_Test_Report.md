@@ -99,3 +99,7 @@ These Chrome captures show the same Murabahah question at 390 × 844 while a moc
 | ![Before, the welcome placeholder remains visible during processing](screenshots/KAN-45_before_mobile.png) | ![After, the welcome bubble and submitted question appear above the loading message](screenshots/KAN-45_after_mobile.png) |
 
 The U01 recheck confirmed readable heading and welcome text. The U11 recheck found a 16 px input, aligned 44 px Send and Clear buttons, and no horizontal page overflow.
+
+## KAN-47 note on U08 (25 November 2026)
+
+The U08 limitation (follow-ups did not use earlier chat context) was addressed in KAN-47. Follow-ups such as "tell me more" or "How is it different from ijarah?" now reuse the last answered topic, and small talk such as "oh ok" or "hmm" gets a friendly reply without losing that topic. This was verified with automated tests and a scripted pipeline check ([pipeline_test_results.md](pipeline_test_results.md#kan-47-conversation-memory-and-small-talk-25-november-2026)). **U08 has not been formally re-run as a usability test.**

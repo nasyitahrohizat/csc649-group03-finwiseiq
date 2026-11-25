@@ -16,6 +16,12 @@ FALLBACK_MESSAGE = (
     "financial compliance (AML/CFT, KYC/CDD and regulation), and I could not "
     "find relevant information for that question. Please try rephrasing it."
 )
+FALLBACK_MESSAGE_MS = (
+    "Maaf, saya hanya boleh menjawab soalan tentang kewangan Islam dan pematuhan "
+    "kewangan Malaysia (AML/CFT, KYC/CDD dan peraturan), dan saya tidak menjumpai "
+    "maklumat yang berkaitan untuk soalan itu. Sila cuba tanya dengan cara lain, "
+    "atau tanya dalam Bahasa Inggeris untuk hasil yang lebih tepat."
+)
 ERROR_MESSAGE = (
     "Sorry, the answer service is unavailable right now. Please try again later."
 )
@@ -94,12 +100,124 @@ def refers_back(question: str) -> bool:
 
 
 def last_topic_question(history: list[dict] | None) -> str:
-    """The user's last real question, skipping follow-ups such as "tell me more"."""
+    """The user's last question that got a real answer (one with sources).
+
+    Skips follow-ups ("tell me more") and chit-chat that only got the
+    fallback or a greeting ("oh ok", "hi"), so they never replace the topic.
+    """
+    messages = [m for m in (history or []) if isinstance(m, dict)]
+    for i in range(len(messages) - 1, -1, -1):
+        if messages[i].get("role") != "user":
+            continue
+        text = _message_text(messages[i].get("content")).strip()
+        reply = messages[i + 1] if i + 1 < len(messages) else {}
+        answered = "\n\nSources:" in _message_text(reply.get("content"))
+        if text and answered and not is_follow_up(text):
+            return text
+    return ""
+
+# Short replies like "oh ok" or "thanks" are small talk, not questions.
+ACKNOWLEDGEMENTS = {
+    "ok", "okay", "okey", "okie", "k", "kk", "oh", "ohh", "ohhh", "oo", "ooo", "oooo",
+    "oh ok", "oh okay", "oo ok", "ooo ok", "ok ok", "okay okay", "ah ok", "ahh ok",
+    "i see", "oh i see", "ah i see", "got it", "noted", "alright", "all right",
+    "cool", "nice", "great", "good", "wow", "interesting", "makes sense",
+    "that makes sense", "understood", "i understand", "oh i understand", "fair enough",
+    "ok noted", "ok got it",
+}
+ACKNOWLEDGEMENTS_MS = {
+    "baik", "baiklah", "faham", "oh faham", "ok faham", "oh baru faham", "baru faham",
+    "oo faham", "ooo faham", "oh macam tu", "oo macam tu", "ooo macam tu",
+    "macam tu", "macam tu ke", "camtu", "oh camtu", "oo camtu", "ooo camtu",
+    "oh gitu", "oo gitu", "gitu", "oh begitu", "begitu", "ok faham dah", "dah faham",
+    "faham dah", "saya faham", "aku faham", "ok baik", "ok la", "okla", "ok lah",
+    "okay lah", "betul", "patutlah", "oh patutlah", "menarik", "bagus", "mantap",
+    "terbaik",
+}
+THANKS = {
+    "thanks", "thank you", "thank you so much", "thanks a lot", "thx", "tq", "tqvm",
+    "ty", "thank u", "thanks so much", "many thanks", "thanks again", "ok thanks",
+    "ok thank you", "okay thanks", "oh thanks", "great thanks", "nice thanks",
+    "thanks for the help", "thank you for the help", "thanks for explaining",
+}
+THANKS_MS = {
+    "terima kasih", "terima kasih banyak", "ribuan terima kasih", "terima kasih ya",
+    "ok terima kasih", "baik terima kasih", "terima kasih banyak banyak", "trima kasih",
+    "makasih", "tq ya", "tq banyak", "terima kasih atas bantuan",
+}
+GOODBYES = {
+    "bye", "bye bye", "goodbye", "good bye", "see you", "see ya", "see you later",
+    "ok bye", "okay bye", "thanks bye", "thank you bye", "bye thanks", "take care",
+}
+GOODBYES_MS = {
+    "selamat tinggal", "jumpa lagi", "jumpa lagi nanti", "ok jumpa lagi", "babai",
+    "bai", "chow", "gerak dulu", "saya pergi dulu", "pergi dulu", "terima kasih bye",
+}
+# Thinking sounds of any length: "hmm", "hmmmm", "umm", "erm", "uh".
+HESITATION = re.compile(r"h+m+|u+m+|e+r+m*|u+h+")
+
+
+# Common Malay words, used to tell if the user has been writing in Malay.
+MALAY_WORDS = {
+    "apa", "itu", "tu", "ini", "ni", "adalah", "ialah", "boleh", "saya", "aku", "aq",
+    "macam", "mana", "bagaimana", "kenapa", "mengapa", "nape", "maksud", "dalam", "dlm",
+    "untuk", "utk", "dengan", "yang", "yg", "tak", "tidak", "x", "nak", "ada", "dan",
+    "atau", "bagi", "bg", "kah", "terangkan", "jelaskan", "lagi", "lg", "contoh", "cth",
+    "faham", "fhm", "baik", "kewangan", "kwgn", "mcm", "camne", "camana", "duit", "wang",
+    "simpan", "hai", "salam", "aslm", "assalamualaikum", "terima", "kasih", "selamat",
+    "jumpa", "maceh", "macey",
+}
+
+
+def conversation_is_malay(history: list[dict] | None) -> bool:
+    """True if the user's last real message (not just "hmm") was in Malay."""
     for msg in reversed(history or []):
         if isinstance(msg, dict) and msg.get("role") == "user":
-            text = _message_text(msg.get("content")).strip()
-            if text and not is_follow_up(text):
-                return text
+            words = [w for w in _words(_message_text(msg.get("content")))
+                     if not HESITATION.fullmatch(w)]
+            if words:
+                return bool(set(words) & MALAY_WORDS)
+    return False
+
+def small_talk_reply(question: str, history: list[dict] | None = None) -> str:
+    """A friendly reply to "oh ok", "thanks" or "bye"; "" if it is not small talk.
+
+    The reply has no sources, so last_topic_question() skips it and a later
+    "tell me more" still refers to the last real question.
+    """
+    words = _words(question)
+    # Drop thinking sounds, so "hmm ok" is treated like "ok".
+    text = " ".join(w for w in words if not HESITATION.fullmatch(w))
+    has_topic = bool(last_topic_question(history))
+        # "ok", "hmm", "tq" and "bye" are used in both languages, so they get
+    # a Malay reply if the user has been writing in Malay.
+    malay = conversation_is_malay(history)
+    if words and not text:  # only thinking sounds, e.g. "hmm" or "umm"
+        if malay:
+            if has_topic:
+                return ("Tak apa, ambil masa anda! 😊 Kalau ada yang kurang jelas, "
+                        'taip "terangkan lagi" atau "contoh".')
+            return ("Tak apa, ambil masa anda! 😊 Anda boleh tanya soalan seperti "
+                    '"Apa itu murabahah?"')
+        if has_topic:
+            return ("No worries, take your time! 😊 If something wasn't clear, "
+                    'say "tell me more" or "explain it more simply".')
+        return ("No worries, take your time! 😊 You can ask me things like "
+                '"What is murabahah?" or "What is customer due diligence?"')
+    if text in ACKNOWLEDGEMENTS_MS or (text in ACKNOWLEDGEMENTS and malay):
+        more = ' Atau taip "terangkan lagi" untuk penjelasan lanjut.' if has_topic else ""
+        return "Baik! 😊 Ada apa-apa lagi yang boleh saya bantu?" + more
+    if text in ACKNOWLEDGEMENTS:
+        more = ' Or say "tell me more" and I\'ll explain further.' if has_topic else ""
+        return "Glad that helps! 😊 Is there anything else I can help you with?" + more
+    if text in THANKS_MS or (text in THANKS and malay):
+        return "Sama-sama! 😊 Tanya sahaja jika ada soalan lain."
+    if text in THANKS:
+        return "You're welcome! 😊 Feel free to ask if you have any other questions."
+    if text in GOODBYES_MS or (text in GOODBYES and malay):
+        return "Selamat tinggal! 👋 Terima kasih kerana menggunakan FinWiseIQ."
+    if text in GOODBYES:
+        return "Goodbye! 👋 Thanks for using FinWiseIQ. Come back anytime."
     return ""
 
 
@@ -122,6 +240,10 @@ def process_question(question: str, history: list[dict] | None = None) -> str:
         return EMPTY_MESSAGE
     question = question.strip()
 
+    reply = small_talk_reply(question, history)
+    if reply:
+        return reply  # small talk: no search and no OpenAI call
+
     results = retrieve_context(question)
     topic = last_topic_question(history)
     uses_history = False
@@ -131,8 +253,10 @@ def process_question(question: str, history: list[dict] | None = None) -> str:
         combined = retrieve_context(f"{topic} {question}")
         if combined:
             results, uses_history = combined, True
-    if not results:
-        return FALLBACK_MESSAGE  # off-topic: OpenAI is NOT called
+    if not results:  # off-topic: OpenAI is NOT called
+        if conversation_is_malay([{"role": "user", "content": question}]):
+            return FALLBACK_MESSAGE_MS
+        return FALLBACK_MESSAGE
 
     context = format_context(results)
     if uses_history:

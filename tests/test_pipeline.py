@@ -160,3 +160,102 @@ def test_long_messages_are_shortened():
     history = [{"role": "assistant", "content": "x" * 2000}]
     text = pipeline.format_history(history)
     assert len(text) == len("FinWiseIQ: ") + pipeline.MAX_MESSAGE_CHARS
+
+def test_chit_chat_does_not_replace_the_topic(monkeypatch):
+    searched = []
+    monkeypatch.setattr(pipeline, "retrieve_context",
+                        fake_search(searched, lambda q: "murabahah" in q))
+    monkeypatch.setattr(model, "generate_answer", lambda q, c: "Fake answer.", raising=False)
+    history = HISTORY + [
+        {"role": "user", "content": "oh ok"},
+        {"role": "assistant", "content": pipeline.FALLBACK_MESSAGE},
+    ]
+    out = pipeline.process_question("Tell me more", history)
+    # "oh ok" only got the fallback, so the topic is still the murabahah question.
+    assert searched[-1] == "What is murabahah? Tell me more"
+    assert out.startswith("Fake answer.")
+
+
+@pytest.mark.parametrize("message", ["oh ok", "Okay!", "Thank you", "terima kasih", "bye"])
+def test_small_talk_gets_a_friendly_reply_without_search(monkeypatch, message):
+    searched = []
+    monkeypatch.setattr(pipeline, "retrieve_context", fake_search(searched, lambda q: True))
+    out = pipeline.process_question(message, HISTORY)
+    assert searched == []  # no search, so OpenAI is not called either
+    assert out != pipeline.FALLBACK_MESSAGE
+    assert "Sources:" not in out
+
+
+def test_acknowledgement_offers_more_only_when_there_is_a_topic():
+    assert "tell me more" in pipeline.small_talk_reply("oh ok", HISTORY)
+    assert "tell me more" not in pipeline.small_talk_reply("oh ok", None)
+
+
+def test_question_starting_with_ok_is_not_small_talk():
+    assert pipeline.small_talk_reply("ok what is ijarah?", HISTORY) == ""
+
+
+def test_tell_me_more_after_small_talk_keeps_the_topic(monkeypatch):
+    searched = []
+    monkeypatch.setattr(pipeline, "retrieve_context",
+                        fake_search(searched, lambda q: "murabahah" in q))
+    monkeypatch.setattr(model, "generate_answer", lambda q, c: "Fake answer.", raising=False)
+    history = HISTORY + [
+        {"role": "user", "content": "oh ok"},
+        {"role": "assistant", "content": pipeline.small_talk_reply("oh ok", HISTORY)},
+    ]
+    pipeline.process_question("Tell me more", history)
+    assert searched[-1] == "What is murabahah? Tell me more"
+
+@pytest.mark.parametrize("message", ["hmm", "Hmmmm...", "umm", "erm", "hmm umm"])
+def test_thinking_sounds_get_a_friendly_reply(message):
+    assert "take your time" in pipeline.small_talk_reply(message, HISTORY)
+
+
+def test_thinking_sound_offers_more_only_when_there_is_a_topic():
+    assert "tell me more" in pipeline.small_talk_reply("hmm", HISTORY)
+    assert "What is murabahah?" in pipeline.small_talk_reply("hmm", None)
+
+
+def test_explain_it_more_simply_is_a_follow_up():
+    assert pipeline.is_follow_up("explain it more simply")
+
+@pytest.mark.parametrize("message", ["hm ok", "hmm okay", "umm thanks", "hmm faham"])
+def test_thinking_sound_with_small_talk_is_still_small_talk(message):
+    reply = pipeline.small_talk_reply(message, HISTORY)
+    assert reply and "take your time" not in reply
+
+
+def test_thinking_sound_before_a_question_is_still_a_question():
+    assert pipeline.small_talk_reply("hmm what is ijarah?", HISTORY) == ""
+
+
+MALAY_HISTORY = [
+    {"role": "user", "content": "Apa itu murabahah?"},
+    {"role": "assistant", "content": "Jualan kos tambah untung.\n\nSources:\n- BNM Murabahah PD"},
+]
+
+
+@pytest.mark.parametrize("message, expected", [
+    ("hmm", "Tak apa"), ("ok", "Baik!"), ("tq", "Sama-sama"), ("bye", "Selamat tinggal"),
+])
+def test_small_talk_follows_a_malay_conversation(message, expected):
+    assert pipeline.small_talk_reply(message, MALAY_HISTORY).startswith(expected)
+
+
+def test_small_talk_stays_english_in_an_english_conversation():
+    assert pipeline.small_talk_reply("hmm", HISTORY).startswith("No worries")
+    assert pipeline.small_talk_reply("ok", HISTORY).startswith("Glad")
+
+
+def test_malay_hmm_still_keeps_the_topic(monkeypatch):
+    searched = []
+    monkeypatch.setattr(pipeline, "retrieve_context",
+                        fake_search(searched, lambda q: "murabahah" in q))
+    monkeypatch.setattr(model, "generate_answer", lambda q, c: "Jawapan.", raising=False)
+    history = MALAY_HISTORY + [
+        {"role": "user", "content": "hmm"},
+        {"role": "assistant", "content": pipeline.small_talk_reply("hmm", MALAY_HISTORY)},
+    ]
+    pipeline.process_question("terangkan lagi", history)
+    assert searched[-1] == "Apa itu murabahah? terangkan lagi"
