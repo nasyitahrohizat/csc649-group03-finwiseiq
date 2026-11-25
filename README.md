@@ -486,13 +486,13 @@ csc649-group03-finwiseiq/
 
 ### Automated tests
 
-The test suite has **106 tests** and runs without an API key. The tests mock OpenAI calls and backend calls where needed.
+The test suite has **108 tests** and runs without an API key. The tests mock OpenAI calls and backend calls where needed.
 
 | File                      | Tests | What is checked                                                                                                                                                     |
 | ------------------------- | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `tests/test_retrieval.py` | 5     | Dataset loads with all columns; a missing column raises an error; relevant questions return sorted matches; off-topic and empty questions return nothing            |
 | `tests/test_model.py`     | 15    | Context-grounded generation; input validation; timeout, authentication, rate-limit, connection and other API errors; key redaction in logs; empty responses; Malay queries and refusals |
-| `tests/test_pipeline.py`  | 41    | Input validation, retrieval and citations, off-topic fallback, API error handling, follow-up retrieval, topic kept after small talk, small-talk replies in English and Malay, and history limits |
+| `tests/test_pipeline.py`  | 43    | Input validation, retrieval and citations, off-topic fallback, API error handling, follow-up retrieval, topic kept after small talk, small-talk replies in English and Malay, Malay/English off-topic fallback, and history limits |
 | `tests/test_interface.py` | 13    | Input validation, response display, Gradio history forwarding, local greetings, backend exceptions, and invalid replies |
 | `tests/test_finwiseiq_redesign.py` | 32 | Branded UI response rendering, question shown while the answer loads, welcome message, local greetings, repeated blank-input handling, Clear, suggested questions, assets, mobile layout, and reduced motion |
 
