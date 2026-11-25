@@ -68,18 +68,9 @@ N/A = not applicable (e.g. Refusal for in-scope questions; Correctness/Faithfuln
 
 ## Follow-up actions
 
-| Issue | Action | Owner |
+| Issue | Action | Status |
 |---|---|---|
-| T13: Federal Court 2019 point missing from REG-004 | ✅ Done in KAN-38 (cited to Kunhibava & Yeo, 2019, JMCL); evaluation re-run on 24 Nov 2026 | Dataset (KAN-38) |
-| T13/T14: model omits relevant details for short questions | Optional system prompt tweak: include key facts from the context that directly support the answer | Generation |
-| T05 and T03/T11/T12 style notes | Optional system prompt tweak: do not mention "the provided context"; do not repeat sources inline | Generation |
-
-## System Prompt Improvements Re-Run (25 November 2026)
-
-- **T03, T11, T12:** No longer repeat source titles or section numbers inline.
-- **T05:** Direct answer without internal "context" wording.
-- **T13 & T14:** Include 2019 Federal Court ruling and Malaysia FATF membership (Feb 2016).
-- **Malay Queries:** Verified natural Bahasa Melayu answers and refusal on Malay/mixed prompts.
-
-## System Prompt Improvements Re-Run (25 Nov 2026)
-- T03, T05, T11-T14 & Malay queries verified.
+| T13: Federal Court 2019 detail | Added to REG-004 | ✅ Done (KAN-38) |
+| T13/T14: Short-question completeness | Require all key facts from context | ✅ Done (KAN-21) |
+| T03/T05/T11/T12: Natural wording & citations | No internal wording; inline citations only if requested | ✅ Done (KAN-21) |
+| Multilingual probes (T21–T24) | Verified Malay, mixed-language, follow-up & refusal (`docs/end_to_end_answers.md`) | ✅ Done (KAN-21) |
