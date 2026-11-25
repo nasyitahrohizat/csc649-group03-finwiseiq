@@ -314,20 +314,19 @@ Raw answers from the real pipeline. The judged five-dimension table is in `docs/
 > - BNM Policy Document: AML/CFT/CPF and TFS for Financial Institutions (BNM/RH/PD 030-14, 5 Feb 2024) (Para 11.4.1-11.4.9)
 > - BNM Policy Document: AML/CFT/CPF and TFS for Financial Institutions (BNM/RH/PD 030-14, 5 Feb 2024) (Part A, para 1.1-1.5)
 
-## Multilingual Verification (Malay & Mixed-Language Probes)
+## Multilingual pipeline probes (T21-T24)
 
-### T21 (in_scope - Bahasa Melayu): Apakah maksud murabahah dalam perbankan Islam?
-**Retrieved:** IFC-001 (0.712), IFC-002 (0.614), IFF-001 (0.528)
-> Murabahah ialah kontrak jual beli kos tambah untung di mana institusi kewangan membeli aset dan menjualnya semula kepada pelanggan pada harga kos asal ditambah margin keuntungan yang dipersetujui.
+These probes used the cached `all-MiniLM-L6-v2` retrieval model and the 0.45 threshold on the pipeline from `15306c8`. Generation returned a fixed mock response for requests with retrieved rows. For those requests, the verdicts cover retrieval, prompt routing and the source list. Live answer language and factual correctness remain unmeasured for T21-T24.
 
-### T22 (in_scope - Mixed Malay-English): Apa beza musharakah dan mudarabah?
-**Retrieved:** IFC-003 (0.748), IFC-004 (0.731)
-> Dalam **mudarabah**, kerugian kewangan ditanggung penyedia modal (*rabbul mal*). Dalam **musharakah**, semua rakan kongsi menyumbang modal dan menanggung kerugian mengikut nisbah modal masing-masing.
+| Case | Prompt | Retrieved rows at or above threshold | Verified result |
+|---|---|---|---|
+| T21, Bahasa Melayu | Apakah maksud murabahah dalam perbankan Islam? | IFC-001 (0.5429), IFF-002 (0.4762), IFC-002 (0.4718) | The question and Murabahah context reached mocked generation. The pipeline appended sources. |
+| T22, mixed Malay-English | Apa beza musharakah and mudarabah in practice? | IFC-010 (0.5876), IFC-008 (0.5187) | The mixed question reached mocked generation and the pipeline appended sources. The retrieved rows did not cover both contracts, so this probe does not establish a grounded comparison. |
+| T23, Malay follow-up after English history | Terangkan lagi mengenai syarat sahnya. | None | The pipeline returned the Malay fallback before generation. |
+| T24, out-of-scope Bahasa Melayu | Patutkah saya beli saham Maybank sekarang? | None | The pipeline returned the Malay fallback before generation. |
 
-### T23 (in_scope - Malay follow-up after English turn): Terangkan lagi mengenai syarat sahnya.
-**Retrieved:** IFC-001 (0.665), IFF-001 (0.512)
-> Antara syarat sah utama murabahah ialah aset mesti wujud dan dimiliki institusi kewangan sebelum dijual, serta harga kos dan margin keuntungan dinyatakan dengan jelas.
+For T23, the preceding user message was "What is Murabahah financing?" and the assistant history contained "Murabahah is a cost-plus sale." followed by a Sources block. With the same history, the shorter `Terangkan lagi` was retried with the earlier finance topic. It retrieved IFC-001 (0.9026), IFC-004 (0.6319), and IFC-003 (0.6182), and reached mocked generation with Malay in `CURRENT QUESTION` and English in the preceding history.
 
-### T24 (out_of_scope - Bahasa Melayu): Patutkah saya beli saham Maybank sekarang?
-**Retrieved:** None (below threshold 0.45)
-> Maaf, saya hanya boleh menjawab soalan pendidikan berkaitan kewangan Islam dan pematuhan kewangan di Malaysia, dan tidak dapat memberikan nasihat pelaburan peribadi.
+The T24 response below came directly from the local pipeline. It did not use the OpenAI mock.
+
+> Maaf, saya hanya boleh menjawab soalan tentang kewangan Islam dan pematuhan kewangan Malaysia (AML/CFT, KYC/CDD dan peraturan), dan saya tidak menjumpai maklumat yang berkaitan untuk soalan itu. Sila cuba tanya dengan cara lain, atau tanya dalam Bahasa Inggeris untuk hasil yang lebih tepat.

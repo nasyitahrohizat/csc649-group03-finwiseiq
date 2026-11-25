@@ -46,7 +46,7 @@ N/A = not applicable (e.g. Refusal for in-scope questions; Correctness/Faithfuln
 | T19 | Is my company's product officially Shariah-compliant? | Passed threshold | N/A | ✅ | ✅ | ✅ | Refused by the system prompt; gave general criteria only and referred to the Shariah committee or a qualified scholar |
 | T20 | What are the AML rules in the United States? | Passed threshold | N/A | ✅ | ✅ | ✅ | Refused by the system prompt; said it covers Malaysian rules only and referred to US authorities |
 
-## Summary
+## Summary of the recorded English run (T01-T20)
 
 | Dimension | Result |
 |---|---|
@@ -55,7 +55,7 @@ N/A = not applicable (e.g. Refusal for in-scope questions; Correctness/Faithfuln
 | Correctness (in-scope) | **15 / 15 fully correct**, 0 partial, 0 wrong |
 | Faithfulness (17 generated answers) | **17 / 17**; no unsupported claims found |
 | Refusal (out-of-scope) | **5 / 5** (3 by the threshold, 2 by the system prompt) |
-| Usefulness | **20 / 20** (all style issues resolved; verified on Malay/mixed queries) |
+| Usefulness | **20 / 20** in the recorded English run |
 | API errors | 0 |
 
 ## Analysis
@@ -63,7 +63,7 @@ N/A = not applicable (e.g. Refusal for in-scope questions; Correctness/Faithfuln
 - **Two-layer refusal works.** The retrieval evaluation (KAN-36) flagged T19 and T20 as a risk because they sound in-domain and pass the threshold. In the end-to-end run, the system prompt made the model refuse both. Obvious off-topic questions (T16–T18) never reached OpenAI.
 - **Grounding holds.** No answer added facts that were not in the retrieved rows. In the first run, before KAN-38, the model did not invent the then-missing Federal Court detail for T13, which is the intended behaviour.
 - **Retrieval near-misses did not hurt answers.** In T01, T05 and T07 the expected row was not ranked first (second in T01 and T07, third in T05), but because all top-3 rows are sent as context, all three answers were still fully correct.
-- **Partial answers now point to generation, not the dataset.** KAN-38 added the Federal Court ruling to REG-004 and retrieval finds it (0.888), but T13 and T14 both show that the model answers a short question briefly and may skip relevant facts that are in the context.
+- **Earlier omissions in T13 and T14.** The earlier responses omitted details present in the retrieved rows. The recorded English rerun includes the Federal Court ruling and the FATF membership detail.
 - **Dataset update did not change the totals.** Retrieval stayed 15 / 15 in the top 3 (12 at rank 1) and 3 / 5 out-of-scope rejected. The new sukuk row raised the recipe question (T17) to 0.409, the highest score among the clearly off-topic questions (T16–T18), still below the 0.45 threshold.
 
 ## Follow-up actions
@@ -71,6 +71,6 @@ N/A = not applicable (e.g. Refusal for in-scope questions; Correctness/Faithfuln
 | Issue | Action | Status |
 |---|---|---|
 | T13: Federal Court 2019 detail | Added to REG-004 | ✅ Done (KAN-38) |
-| T13/T14: Short-question completeness | Require all key facts from context | ✅ Done (KAN-21) |
-| T03/T05/T11/T12: Natural wording & citations | No internal wording; inline citations only if requested | ✅ Done (KAN-21) |
-| Multilingual probes (T21–T24) | Verified Malay, mixed-language, follow-up & refusal (`docs/end_to_end_answers.md`) | ✅ Done (KAN-21) |
+| T13/T14: Short-question completeness | Include key facts relevant to the question | Covered in the recorded English rerun |
+| T03/T05/T11/T12: Natural wording and citations | Avoid internal wording and duplicate citations. Retain references needed for the answer. | Covered in the recorded English rerun |
+| Multilingual probes (T21-T24) | Record retrieval and request routing, plus the actual local fallback | [Offline probes recorded](end_to_end_answers.md#multilingual-pipeline-probes-t21-t24). Live multilingual generation remains unverified. |
