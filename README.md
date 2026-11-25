@@ -117,7 +117,9 @@ FinWiseIQ will **not**:
 | Friendly error messages for empty input, API failures and timeouts (no raw errors or keys shown)  | Robustness                                  | `src/model.py`, `src/pipeline.py`, `app/interface.py` | Implemented                                              |
 | Automated tests run on every pull request (GitHub Actions)                                        | Quality                                     | `.github/workflows/tests.yml`                         | Implemented                                              |
 | Conversation memory: follow-ups such as "tell me more" or "terangkan lagi" reuse the last answered topic | Optional                         | `src/pipeline.py`                                     | Implemented (last 6 messages, rule-based)                |
-| Friendly small-talk replies ("oh ok", "hmm", "thanks", "bye") in English or Malay, matching the conversation language | Usability            | `src/pipeline.py`                                     | Implemented                                              |
+| Friendly small-talk replies ("oh ok", "hmm", "thanks", "bye") in English or Malay, matching the conversation language | Usability            | `src/pipeline.py`                                     | Implemented (fixed phrase lists)                         |
+| Out-of-scope message in Malay when the question contains common Malay words                       | Usability                                   | `src/pipeline.py`                                     | Implemented                                              |
+| Answering questions written in Malay                                                              | –                                           | `src/retrieval.py`, `src/prompt.py`                   | Partial: works when the key term is the same in both languages (e.g. "Apa itu takaful?"); Malay-only wording often fails retrieval (see [Section 14](#14-limitations)) |
 
 ---
 
@@ -212,10 +214,15 @@ Steps 1–6, 8 and 9 follow the lecturer's baseline example. Step 7 and the sour
 
 ### Conversation memory and small talk (KAN-47)
 
-Before retrieval, `process_question()` handles two extra cases:
+Before retrieval, `process_question()` handles two extra cases, and it also picks the language of the out-of-scope message:
 
-- **Small talk.** Messages such as "oh ok", "hmm", "thanks", "terima kasih" or "bye" get a friendly reply from `small_talk_reply()` without retrieval or an OpenAI call. Thinking sounds of any length ("hmmm", "umm") are recognised with a regular expression, also when mixed with small talk ("hm ok"). Words used in both languages ("ok", "hmm", "tq", "bye") are answered in Malay if the user's last real message contained common Malay words (`conversation_is_malay()`, a rule-based check).
+- **Small talk.** Messages such as "oh ok", "oo macam tu", "hmm", "thanks", "terima kasih" or "bye" get a friendly reply from `small_talk_reply()` without retrieval or an OpenAI call. A message counts as small talk only if the **whole** message is one of the listed English or Malay phrases, so "ok what is ijarah?" is still treated as a question. Thinking sounds of any length ("hmmm", "umm") are recognised with a regular expression, also when mixed with small talk ("hm ok"). Words used in both languages ("ok", "hmm", "tq", "bye") are answered in Malay if the user's last real message contained common Malay words (`conversation_is_malay()`, a rule-based check).
 - **Follow-ups.** The topic is the user's last question that received a real answer (a reply with sources), so small talk and refused questions never replace it. A pure follow-up ("tell me more", "terangkan lagi") or a question that refers back ("How is it different from ijarah?") is searched together with that topic. Only then are the last six messages (each cut to 500 characters, sources removed) sent to OpenAI under "CONVERSATION SO FAR". New questions are sent on their own.
+- **Malay out-of-scope message.** If nothing passes the threshold and the question contains common Malay words (including short forms such as "mcm", "nak", "dlm"), the fallback is shown in Malay (`FALLBACK_MESSAGE_MS`) and suggests asking in English for better results. OpenAI is still not called.
+
+The memory exists only inside the open chat. Nothing is saved after the page is closed or **Clear** is pressed.
+
+These behaviours were checked on 25 November 2026 with real retrieval and OpenAI replaced by a stub (no API calls); see [docs/pipeline_test_results.md](docs/pipeline_test_results.md#kan-47-conversation-memory-and-small-talk-25-november-2026).
 
 ### Function contract
 
@@ -232,7 +239,7 @@ Top-k retrieval **always** returns k results, even when none of them is related 
 | Best similarity score | Behaviour                                                                                                                                                                                                                                              |
 | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | At or above 0.45      | Keep matches ≥ 0.45, inject them as context and call the LLM.                                                                                                                                                                                          |
-| Below 0.45            | Do not call the LLM. Return: _"Sorry, I can only answer questions about Islamic finance and Malaysian financial compliance (AML/CFT, KYC/CDD and regulation), and I could not find relevant information for that question. Please try rephrasing it."_ |
+| Below 0.45            | Do not call the LLM. Return: _"Sorry, I can only answer questions about Islamic finance and Malaysian financial compliance (AML/CFT, KYC/CDD and regulation), and I could not find relevant information for that question. Please try rephrasing it."_ If the question contains common Malay words, the same message is shown in Malay. |
 
 **How 0.45 was chosen** (16 November 2026, details in [docs/retrieval_evaluation.md](docs/retrieval_evaluation.md)): clear off-topic test questions (weather, recipe, stock tip) scored at most **0.388**, while the lowest correct in-scope match (AML-006) scored **0.495**. A threshold of 0.5 would have dropped that valid match, so 0.45 was chosen between the two groups. After the KAN-38 dataset update (24 November 2026) the highest score among the clearly off-topic questions (T16–T18) rose to **0.409** (the recipe question against the new sukuk row), which is still below 0.45, so the threshold was kept. The two in-domain-sounding out-of-scope questions (T19 at 0.630, T20 at 0.561) pass the threshold and are refused by the system prompt instead.
 
@@ -537,6 +544,10 @@ The two out-of-scope questions that pass the threshold (T19 Shariah certificatio
 | Is my company product officially Shariah-compliant? | Declined to certify; referred the user to a qualified Shariah scholar or regulator |
 | Invalid API key                                     | Friendly error message; no crash                                                   |
 
+**Conversation memory and small talk** (25 November 2026, KAN-47, [docs/pipeline_test_results.md](docs/pipeline_test_results.md#kan-47-conversation-memory-and-small-talk-25-november-2026)): 15 scripted cases with real retrieval and OpenAI replaced by a stub. Small talk got the right English or Malay reply, follow-ups ("tell me more", "terangkan lagi", "How is it different from ijarah?") reused the earlier topic and sent history, new questions were sent without history, and off-topic questions got the English or Malay fallback. 15 / 15 behaved as designed. This checks the routing logic, not the quality of the generated answers.
+
+**Malay retrieval check** (25 November 2026, retrieval only, no OpenAI): 10 short Malay questions were run through `retrieve_context()`. Questions whose key term is the same in both languages found the right row at rank 1 ("Apa itu ijarah / takaful / sukuk / riba?", "Apakah peranan Bank Negara Malaysia?"). Questions in Malay wording did not: "Apa itu murabahah?" ranked Mudarabah first (Murabahah rows were 2nd and 3rd), "Apa beza perbankan Islam dan konvensional?" and "Apa itu usaha wajar pelanggan?" (customer due diligence) matched the wrong rows, and "Apa maksud pengubahan wang haram?" (money laundering) and "mcm mana nak simpan duit dlm shariah-compliant way?" found nothing. This is an informal check, not part of the 20-question evaluation set.
+
 **Gradio interface** (24 November 2026, KAN-35): through the running app, the Murabahah and customer due diligence questions returned answers with sources, off-topic questions returned the fallback, and empty input returned "Please type a question."
 
 **Usability testing** (24 November 2026, KAN-39, [docs/KAN-39_Gradio_Usability_Test_Report.md](docs/KAN-39_Gradio_Usability_Test_Report.md)): 12 manual scenarios on the branded interface with the real backend (U01–U12: answers with sources, Send button and Enter key, suggested questions, empty input, out-of-scope refusal, chat history, Clear, API error, 390 px mobile width, keyboard and reduced motion). All 12 passed; three had minor notes: low contrast in the welcome text, limited mobile input spacing, and follow-up questions not using earlier chat context (follow-ups were later added in KAN-47). Screenshots are in `docs/screenshots/`. The time-on-task values in the report are estimates, not stopwatch measurements.
@@ -614,7 +625,9 @@ git log --all --format="%ad  %an  %s" --date=short
 - **A single threshold is a trade-off.** 0.45 was calibrated on 20 test questions. It may wrongly refuse some valid questions and accept some unrelated ones, and should be re-calibrated whenever the dataset changes significantly.
 - **Questions are matched, not answers.** Only dataset _questions_ are embedded. A user question that matches the content of an answer but not the wording of its question may be missed.
 - **Short answers can skip details.** For short questions the model sometimes leaves out a relevant fact that is in the retrieved context (T13, T14 in the end-to-end evaluation).
-- **Rule-based conversation memory and small talk.** Follow-ups and small talk are detected with word lists, not by understanding the message. Unusual follow-up wording can get the fallback, and a Malay message containing none of the listed Malay words is treated as English for small-talk replies. When history is used, only the last six messages are sent to OpenAI.
+- **Rule-based conversation memory and small talk.** Follow-ups, small talk and the reply language are detected with fixed word lists, not by understanding the message. Phrases that are not on the lists (for example "hmm ok la tu", or a follow-up worded in an unusual way) get the normal search and often the fallback. A Malay message containing none of the listed Malay words is treated as English. "Yes", "ya" and "boleh" are deliberately not treated as small talk. When history is used, only the last six messages are sent to OpenAI, and memory is lost when the page is closed or cleared.
+- **Malay questions are only partly supported.** The dataset is in English and the embedding model is English-only, so Malay questions are found only when the key term is the same in both languages (ijarah, takaful, sukuk). Questions in Malay wording ("pengubahan wang haram", "usaha wajar pelanggan") usually match the wrong row or nothing. In that case the user gets the Malay fallback, which suggests asking in English. When a Malay question does retrieve the right rows, the model answers in Malay.
+- **Chat history is sent to OpenAI for follow-ups.** For follow-up questions, up to six earlier messages are sent to the OpenAI API, so users should not type personal or confidential information.
 - **LLM hallucination.** Even with context injection and a strict system prompt, the LLM can still add unsupported details or misread the context.
 - **Outdated sources.** Regulations and standards are revised over time. Answers can become outdated if the dataset is not reviewed against newer versions.
 - **External API dependence and cost.** The chatbot depends on the OpenAI API being available. Rate limits, quotas, latency, usage charges and model deprecations are outside the team's control.
@@ -627,11 +640,10 @@ git log --all --format="%ad  %an  %s" --date=short
 
 - Refine the similarity threshold: for example, separate thresholds per category, or a re-ranking step that checks whether each retrieved answer actually addresses the question.
 - Embed answers as well as questions, or combine semantic and keyword search (hybrid retrieval).
-- Improve follow-up detection and preserve the finance topic across greetings and refusals.
+- Replace the word lists for follow-ups, small talk and language with a more general method (for example, asking the LLM to rewrite a follow-up into a standalone question), so unlisted phrasings also work. (Keeping the topic across small talk and refusals was added in KAN-47.)
 - Expand the dataset further (e.g. _zakat_; _takaful_ and _sukuk_ were added in KAN-38) and add a scheduled review against new versions of the source documents.
 - Retrieve directly from chunks of the source documents rather than only from a hand-written Q&A dataset.
-- Compare other embedding models, including multilingual ones, for Malay and Arabic terms.
-- Support questions and answers in Bahasa Melayu.
+- Support Malay questions properly: try a multilingual embedding model (for example `paraphrase-multilingual-MiniLM-L12-v2`) or add Malay versions of the dataset questions, then re-calibrate the threshold and re-run the evaluations.
 - Deploy a public demo (e.g. on Hugging Face Spaces) with the API key stored as a secret.
 
 ---
@@ -687,4 +699,4 @@ BNM policy documents are copyrighted by BNM. The dataset only paraphrases short 
 
 ---
 
-_Last updated 25 November 2026 after integrating the frontend polish and chat memory. The evaluation results reflect the 24 November reruns after the KAN-38 dataset update. Re-run both evaluation scripts and update Section 12 if the dataset changes._
+_Last updated 25 November 2026 after integrating the frontend polish, chat memory, small talk and the Malay fallback (KAN-47). The evaluation results reflect the 24 November reruns after the KAN-38 dataset update. Re-run both evaluation scripts and update Section 12 if the dataset changes._

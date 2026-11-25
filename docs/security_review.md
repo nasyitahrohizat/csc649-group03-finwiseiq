@@ -40,3 +40,14 @@
 - Every change to `main` goes through a reviewed pull request with passing tests.
 - Two-layer protection against misuse: the similarity threshold blocks off-topic input before it reaches OpenAI, and the system prompt refuses out-of-scope requests that pass the threshold.
 - The interface shows only friendly messages; raw exceptions and stack traces are never displayed.
+
+## Update after KAN-47 (25 November 2026)
+
+This note covers a change made after the review. The 10 checks above were **not** re-run.
+
+KAN-47 added conversation memory, which changes what is sent to OpenAI:
+
+- **New data flow.** For follow-up questions only, up to six earlier chat messages (each cut to 500 characters, sources removed) are sent to OpenAI with the current question. New questions, small talk and off-topic messages send no history. Small talk and off-topic messages do not call OpenAI at all.
+- **Privacy.** Anything the user typed earlier in the chat can therefore reach the OpenAI API. Users should not enter personal or confidential information. The history stays in the open browser session only and is not stored by FinWiseIQ.
+- **Prompt injection.** Earlier messages are user-controlled text. They are labelled "CONVERSATION SO FAR" and sent as part of the user message, not the system prompt, so the system prompt's rules still apply. Prompt injection through earlier messages was **not tested** in this review.
+- **No new secrets or settings.** The change is limited to `src/pipeline.py` and its tests. Key handling, `.env` and the Gradio launch settings are unchanged.
