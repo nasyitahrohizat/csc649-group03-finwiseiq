@@ -16,6 +16,12 @@ FALLBACK_MESSAGE = (
     "financial compliance (AML/CFT, KYC/CDD and regulation), and I could not "
     "find relevant information for that question. Please try rephrasing it."
 )
+FALLBACK_MESSAGE_MS = (
+    "Maaf, saya hanya boleh menjawab soalan tentang kewangan Islam dan pematuhan "
+    "kewangan Malaysia (AML/CFT, KYC/CDD dan peraturan), dan saya tidak menjumpai "
+    "maklumat yang berkaitan untuk soalan itu. Sila cuba tanya dengan cara lain, "
+    "atau tanya dalam Bahasa Inggeris untuk hasil yang lebih tepat."
+)
 ERROR_MESSAGE = (
     "Sorry, the answer service is unavailable right now. Please try again later."
 )
@@ -111,24 +117,55 @@ def last_topic_question(history: list[dict] | None) -> str:
     return ""
 
 # Short replies like "oh ok" or "thanks" are small talk, not questions.
-ACKNOWLEDGEMENTS = {"ok", "okay", "oh ok", "oh okay", "i see", "oh i see", "got it",
-                    "noted", "alright", "cool", "nice", "great"}
-ACKNOWLEDGEMENTS_MS = {"baik", "baiklah", "faham", "oh faham", "ok faham", "oh baru faham"}
-THANKS = {"thanks", "thank you", "thank you so much", "thanks a lot", "thx", "tq", "tqvm"}
-THANKS_MS = {"terima kasih", "terima kasih banyak", "ribuan terima kasih"}
-GOODBYES = {"bye", "bye bye", "goodbye"}
-GOODBYES_MS = {"selamat tinggal", "jumpa lagi"}
+ACKNOWLEDGEMENTS = {
+    "ok", "okay", "okey", "okie", "k", "kk", "oh", "ohh", "ohhh", "oo", "ooo", "oooo",
+    "oh ok", "oh okay", "oo ok", "ooo ok", "ok ok", "okay okay", "ah ok", "ahh ok",
+    "i see", "oh i see", "ah i see", "got it", "noted", "alright", "all right",
+    "cool", "nice", "great", "good", "wow", "interesting", "makes sense",
+    "that makes sense", "understood", "i understand", "oh i understand", "fair enough",
+    "ok noted", "ok got it",
+}
+ACKNOWLEDGEMENTS_MS = {
+    "baik", "baiklah", "faham", "oh faham", "ok faham", "oh baru faham", "baru faham",
+    "oo faham", "ooo faham", "oh macam tu", "oo macam tu", "ooo macam tu",
+    "macam tu", "macam tu ke", "camtu", "oh camtu", "oo camtu", "ooo camtu",
+    "oh gitu", "oo gitu", "gitu", "oh begitu", "begitu", "ok faham dah", "dah faham",
+    "faham dah", "saya faham", "aku faham", "ok baik", "ok la", "okla", "ok lah",
+    "okay lah", "betul", "patutlah", "oh patutlah", "menarik", "bagus", "mantap",
+    "terbaik",
+}
+THANKS = {
+    "thanks", "thank you", "thank you so much", "thanks a lot", "thx", "tq", "tqvm",
+    "ty", "thank u", "thanks so much", "many thanks", "thanks again", "ok thanks",
+    "ok thank you", "okay thanks", "oh thanks", "great thanks", "nice thanks",
+    "thanks for the help", "thank you for the help", "thanks for explaining",
+}
+THANKS_MS = {
+    "terima kasih", "terima kasih banyak", "ribuan terima kasih", "terima kasih ya",
+    "ok terima kasih", "baik terima kasih", "terima kasih banyak banyak", "trima kasih",
+    "makasih", "tq ya", "tq banyak", "terima kasih atas bantuan",
+}
+GOODBYES = {
+    "bye", "bye bye", "goodbye", "good bye", "see you", "see ya", "see you later",
+    "ok bye", "okay bye", "thanks bye", "thank you bye", "bye thanks", "take care",
+}
+GOODBYES_MS = {
+    "selamat tinggal", "jumpa lagi", "jumpa lagi nanti", "ok jumpa lagi", "babai",
+    "bai", "chow", "gerak dulu", "saya pergi dulu", "pergi dulu", "terima kasih bye",
+}
 # Thinking sounds of any length: "hmm", "hmmmm", "umm", "erm", "uh".
 HESITATION = re.compile(r"h+m+|u+m+|e+r+m*|u+h+")
 
 
 # Common Malay words, used to tell if the user has been writing in Malay.
 MALAY_WORDS = {
-    "apa", "itu", "ini", "tu", "ni", "adalah", "ialah", "boleh", "saya", "aku",
-    "macam", "mana", "bagaimana", "kenapa", "mengapa", "maksud", "dalam", "untuk",
-    "dengan", "yang", "tak", "tidak", "nak", "ada", "dan", "atau", "bagi", "kah",
-    "terangkan", "jelaskan", "lagi", "contoh", "faham", "baik", "kewangan",
-    "hai", "salam", "assalamualaikum", "terima", "kasih", "selamat", "jumpa",
+    "apa", "itu", "tu", "ini", "ni", "adalah", "ialah", "boleh", "saya", "aku", "aq",
+    "macam", "mana", "bagaimana", "kenapa", "mengapa", "nape", "maksud", "dalam", "dlm",
+    "untuk", "utk", "dengan", "yang", "yg", "tak", "tidak", "x", "nak", "ada", "dan",
+    "atau", "bagi", "bg", "kah", "terangkan", "jelaskan", "lagi", "lg", "contoh", "cth",
+    "faham", "fhm", "baik", "kewangan", "kwgn", "mcm", "camne", "camana", "duit", "wang",
+    "simpan", "hai", "salam", "aslm", "assalamualaikum", "terima", "kasih", "selamat",
+    "jumpa", "maceh", "macey",
 }
 
 
@@ -216,8 +253,10 @@ def process_question(question: str, history: list[dict] | None = None) -> str:
         combined = retrieve_context(f"{topic} {question}")
         if combined:
             results, uses_history = combined, True
-    if not results:
-        return FALLBACK_MESSAGE  # off-topic: OpenAI is NOT called
+    if not results:  # off-topic: OpenAI is NOT called
+        if conversation_is_malay([{"role": "user", "content": question}]):
+            return FALLBACK_MESSAGE_MS
+        return FALLBACK_MESSAGE
 
     context = format_context(results)
     if uses_history:
