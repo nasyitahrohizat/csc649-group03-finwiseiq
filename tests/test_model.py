@@ -269,7 +269,7 @@ def test_generate_answer_out_of_scope_question(mock_get_client, _mock_model):
 def test_system_prompt_includes_generation_improvement_rules():
     """SYSTEM_PROMPT enforces user-language replies, key facts, and clean output."""
     prompt_lower = SYSTEM_PROMPT.lower()
-    assert "same language the user wrote in" in prompt_lower
+    assert "same language used in the user question" in prompt_lower
     assert "key facts" in prompt_lower
     assert "in the context provided" in prompt_lower
     assert "do not repeat or cite" in prompt_lower
@@ -284,8 +284,9 @@ def test_generate_answer_malay_query(mock_get_client, _mock_model):
         "dan menjualnya kepada pelanggan pada harga kos asal ditambah keuntungan yang dipersetujui."
     )
     mock_get_client.return_value = mock_client
-    ans = generate_answer("Apakah maksud murabahah dalam perbankan Islam?", SAMPLE_CSV_CONTEXT)
-    assert "murabahah" in ans.lower() and "context" not in ans.lower()
+    ans = generate_answer("Apakah maksud murabahah dalam perbankan Islam?", "[IFC-001 | Contracts] Murabahah is a cost-plus-profit sale contract.")
+    msgs = mock_client.chat.completions.create.call_args.kwargs["messages"]
+    assert "USER QUESTION" in msgs[0]["content"] and "USER QUESTION:\nApakah maksud murabahah" in msgs[1]["content"]
 
 
 @patch("src.model.get_model_name", return_value="gpt-4o-mini")
