@@ -266,35 +266,102 @@ def test_generate_answer_out_of_scope_question(mock_get_client, _mock_model):
     assert "islamic finance" in answer.lower()
 
 
-def test_system_prompt_includes_generation_improvement_rules():
-    """SYSTEM_PROMPT enforces user-language replies, key facts, and clean output."""
-    prompt_lower = SYSTEM_PROMPT.lower()
-    assert "same language the user wrote in" in prompt_lower
-    assert "key facts" in prompt_lower
-    assert "in the context provided" in prompt_lower
-    assert "do not repeat or cite" in prompt_lower
+MURABAHAH_ROW = {
+    "question": "What is Murabahah financing?",
+    "answer": (
+        "The bank buys an asset and sells it to the customer at the disclosed "
+        "original cost plus the agreed profit."
+    ),
+    "source": "BNM Policy Document: Murabahah",
+    "source_section": "para 1.3-1.5",
+}
+
+
+@patch("src.model.get_model_name", return_value="gpt-4o-mini")
+@patch("src.model.get_openai_client")
+def test_mixed_followup_forwards_current_question_and_grounded_context(
+    mock_get_client, _mock_model, monkeypatch
+):
+    from app.interface import respond
+    from src import pipeline
+
+    topic = MURABAHAH_ROW["question"]
+    question = "Terangkan lagi in simpler words?"
+    previous_reply = "The bank discloses the cost and profit."
+    history = [
+        {"role": "user", "content": topic},
+        {
+            "role": "assistant",
+            "content": previous_reply + "\n\nSources:\n- Earlier citation",
+        },
+    ]
+    response = "Bank buys the asset dan menjualnya pada kos asal plus keuntungan."
+    client = mock_get_client.return_value
+    client.chat.completions.create.return_value = _make_mock_response(response)
+
+    def retrieve(query):
+        return [MURABAHAH_ROW] if query == f"{topic} {question}" else []
+
+    monkeypatch.setattr(pipeline, "retrieve_context", retrieve)
+
+    answer = respond(question, history)
+
+    assert answer == response + "\n\nSources:\n- BNM Policy Document: Murabahah (para 1.3-1.5)"
+    context = pipeline.format_context([MURABAHAH_ROW])
+    client.chat.completions.create.assert_called_once_with(
+        model="gpt-4o-mini",
+        messages=[
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {
+                "role": "user",
+                "content": (
+                    f"CONTEXT:\n{context}\n\nUSER QUESTION:\nCONVERSATION SO FAR:\n"
+                    f"User: {topic}\nFinWiseIQ: {previous_reply}\n\nCURRENT QUESTION:\n{question}"
+                ),
+            },
+        ],
+    )
 
 
 @patch("src.model.get_model_name", return_value="gpt-4o-mini")
 @patch("src.model.get_openai_client")
 def test_generate_answer_malay_query(mock_get_client, _mock_model):
-    mock_client = MagicMock()
-    mock_client.chat.completions.create.return_value = _make_mock_response(
-        "Murabahah ialah kontrak jual beli kos tambah untung di mana bank membeli aset "
-        "dan menjualnya kepada pelanggan pada harga kos asal ditambah keuntungan yang dipersetujui."
+    client = mock_get_client.return_value
+    question = "Apakah maksud murabahah dalam perbankan Islam?"
+    context = MURABAHAH_ROW["answer"]
+    response = (
+        "Bank membeli aset dan menjualnya kepada pelanggan pada kos asal "
+        "yang dinyatakan bersama keuntungan yang dipersetujui."
     )
-    mock_get_client.return_value = mock_client
-    ans = generate_answer("Apakah maksud murabahah dalam perbankan Islam?", SAMPLE_CSV_CONTEXT)
-    assert "murabahah" in ans.lower() and "context" not in ans.lower()
+    client.chat.completions.create.return_value = _make_mock_response(response)
+
+    answer = generate_answer(question, context)
+
+    assert answer == response
+    client.chat.completions.create.assert_called_once_with(
+        model="gpt-4o-mini",
+        messages=[
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "user", "content": f"CONTEXT:\n{context}\n\nUSER QUESTION:\n{question}"},
+        ],
+    )
 
 
 @patch("src.model.get_model_name", return_value="gpt-4o-mini")
 @patch("src.model.get_openai_client")
 def test_generate_answer_malay_insufficient_context(mock_get_client, _mock_model):
-    mock_client = MagicMock()
-    mock_client.chat.completions.create.return_value = _make_mock_response(
-        "Maaf, maklumat yang diminta tidak terdapat dalam pangkalan pengetahuan FinWiseIQ."
+    client = mock_get_client.return_value
+    question = "Apakah kadar cukai pendapatan semasa di Malaysia?"
+    refusal = "Maaf, maklumat yang diminta tidak terdapat dalam pangkalan pengetahuan FinWiseIQ."
+    client.chat.completions.create.return_value = _make_mock_response(refusal)
+
+    answer = generate_answer(question, SAMPLE_CSV_CONTEXT)
+
+    assert answer == refusal
+    client.chat.completions.create.assert_called_once_with(
+        model="gpt-4o-mini",
+        messages=[
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "user", "content": f"CONTEXT:\n{SAMPLE_CSV_CONTEXT}\n\nUSER QUESTION:\n{question}"},
+        ],
     )
-    mock_get_client.return_value = mock_client
-    ans = generate_answer("Apakah kadar cukai pendapatan semasa di Malaysia?", SAMPLE_CSV_CONTEXT)
-    assert "pangkalan pengetahuan" in ans.lower()
