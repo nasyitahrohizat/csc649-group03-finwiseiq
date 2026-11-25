@@ -259,3 +259,7 @@ def test_malay_hmm_still_keeps_the_topic(monkeypatch):
     ]
     pipeline.process_question("terangkan lagi", history)
     assert searched[-1] == "Apa itu murabahah? terangkan lagi"
+
+def test_malay_off_topic_question_returns_malay_fallback(monkeypatch):
+    monkeypatch.setattr(pipeline, "retrieve_context", lambda q: [])
+    assert pipeline.process_question("mcm mana nak simpan duit", None) == pipeline.FALLBACK_MESSAGE_MS
